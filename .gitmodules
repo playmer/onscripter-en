@@ -1,0 +1,18 @@
+[submodule "deps/SDL_mixer"]
+	path = deps/SDL_mixer
+	url = https://github.com/libsdl-org/SDL_mixer.git
+[submodule "deps/SDL2"]
+	path = deps/SDL2
+	url = https://github.com/libsdl-org/SDL.git
+[submodule "deps/SDL_Image"]
+	path = deps/SDL_Image
+	url = https://github.com/libsdl-org/SDL_image.git
+[submodule "deps/SDL_ttf"]
+	path = deps/SDL_ttf
+	url = https://github.com/libsdl-org/SDL_ttf.git
+[submodule "deps/freetype"]
+	path = deps/freetype
+	url = https://github.com/freetype/freetype.git
+[submodule "deps/soloud/repo"]
+	path = deps/soloud/repo
+	url = https://github.com/jarikomppa/soloud.git
