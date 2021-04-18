@@ -123,12 +123,13 @@ extern SDL_TimerID timer_seqmusic_id;
           (buf[4] == 0)  && (buf[5] == 0) && \
           (buf[6] == 0)  && (buf[7] == 6))
 
-extern long decodeOggVorbis(ONScripterLabel::MusicStruct *music_struct, Uint8 *buf_dst, long len, bool do_rate_conversion)
+extern long decodeOggVorbis(ONScripterLabel *scripterLabel, Uint8 *buf_dst, long len, bool do_rate_conversion)
 {
+    //SDL_LockMutex(scripterLabel->mMusicMutex);
     int current_section;
     long total_len = 0;
 
-    OVInfo *ovi = music_struct->ovi;
+    OVInfo *ovi = scripterLabel->music_struct.ovi;
     char *buf = (char*)buf_dst;
     if (do_rate_conversion && ovi->cvt.needed){
         len = len * ovi->mult1 / ovi->mult2;
@@ -149,13 +150,17 @@ extern long decodeOggVorbis(ONScripterLabel::MusicStruct *music_struct, Uint8 *b
 #endif
         if (src_len <= 0) break;
 
-        int vol = music_struct->is_mute ? 0 : music_struct->volume;
-        if (music_struct->voice_sample && *(music_struct->voice_sample))
+        int vol = scripterLabel->music_struct.is_mute ? 0 : scripterLabel->music_struct.volume;
+        if (scripterLabel->music_struct.voice_sample && *(scripterLabel->music_struct.voice_sample))
             vol /= 2;
         long dst_len = src_len;
         if (do_rate_conversion && ovi->cvt.needed){
             ovi->cvt.len = src_len;
-            SDL_ConvertAudio(&ovi->cvt);
+            if (-1 == SDL_ConvertAudio(&ovi->cvt))
+            {
+              //SDL_UnlockMutex(scripterLabel->mMusicMutex);
+              return 0;
+            }
             memcpy(buf_dst, ovi->cvt.buf, ovi->cvt.len_cvt);
             dst_len = ovi->cvt.len_cvt;
 
@@ -173,15 +178,17 @@ extern long decodeOggVorbis(ONScripterLabel::MusicStruct *music_struct, Uint8 *b
             if (do_rate_conversion && vol != DEFAULT_VOLUME){ 
                 // volume change under SOUND_OGG_STREAMING
                 for (int i=0 ; i<dst_len ; i+=2){
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-                    SWAP_SHORT_BYTES( ((short*)(buf_dst+i)) )
-#endif
+                    if constexpr (SDL_BYTEORDER == SDL_BIG_ENDIAN){
+                        SWAP_SHORT_BYTES( ((short*)(buf_dst+i)) )
+                    }
+
                     short a = *(short*)(buf_dst+i);
                     a = a*vol/100;
                     *(short*)(buf_dst+i) = a;
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-                    SWAP_SHORT_BYTES( ((short*)(buf_dst+i)) )
-#endif
+
+                    if constexpr (SDL_BYTEORDER == SDL_BIG_ENDIAN) {
+                        SWAP_SHORT_BYTES( ((short*)(buf_dst+i)) )
+                    }
                 }
             }
             buf += dst_len;
@@ -193,7 +200,8 @@ extern long decodeOggVorbis(ONScripterLabel::MusicStruct *music_struct, Uint8 *b
         len -= src_len;
     }
 #endif
-
+    
+    //SDL_UnlockMutex(scripterLabel->mMusicMutex);
     return total_len;
 }
 
@@ -201,9 +209,11 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
 {
     if ( !audio_open_flag ) return SOUND_NONE;
 
+
+
     long length = script_h.cBR->getFileLength( filename );
     if (length == 0) return SOUND_NONE;
-
+    
     //Mion: account for mode_wave_demo setting
     //(i.e. if not set, then don't play non-bgm wave/ogg during skip mode)
     if (!mode_wave_demo_flag &&
@@ -213,9 +223,9 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
              (channel == MIX_CLICKVOICE_CHANNEL)))
             return SOUND_NONE;
     }
-
+    
     unsigned char *buffer;
-
+    
     if ((format & (SOUND_MP3 | SOUND_OGG_STREAMING)) && 
         (length == music_buffer_length) &&
         music_buffer ){
@@ -232,12 +242,12 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
         }
         script_h.cBR->getFile( filename, buffer );
     }
-
+    
     if (format & (SOUND_OGG | SOUND_OGG_STREAMING)){
         int ret = playOGG(format, buffer, length, loop_flag, channel);
         if (ret & (SOUND_OGG | SOUND_OGG_STREAMING)) return ret;
     }
-
+    
     /* check for WMA (i.e. ASF header format) */
     if ( IS_ASF_HDR(buffer) ){
         snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
@@ -246,7 +256,7 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
         delete[] buffer;
         return SOUND_OTHER;
     }
-
+    
     /* check for AVI header format */
     if ( IS_AVI_HDR(buffer) ){
         snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
@@ -255,7 +265,7 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
         delete[] buffer;
         return SOUND_OTHER;
     }
-
+    
     if (format & SOUND_WAVE){
         if (strncmp((char*) buffer, "RIFF", 4) != 0) {
             // bad (encrypted?) header; need to recreate
@@ -269,10 +279,10 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
                 // read fmt info
                 unsigned char *buffer2 = new unsigned char[fmtlen];
                 script_h.cBR->getFile( fmtname, buffer2 );
-
+    
                 int channels, bits;
                 unsigned long rate=0, data_length=0;
-
+    
                 channels = buffer2[0];
                 for (int i=5; i>1; i--) {
                     rate = (rate << 8) + buffer2[i];
@@ -319,7 +329,7 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
             return SOUND_WAVE;
         }
     }
-
+    
     if ((format & SOUND_MP3) &&
         !(IS_MIDI_HDR(buffer) && (format & SOUND_SEQMUSIC))){ //bypass MIDIs
         if (music_cmd){
@@ -344,16 +354,16 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
                 }
             }
         }
-
-        mp3_sample = SMPEG_new_rwops( SDL_RWFromMem( buffer, length ), NULL, 0 );
-
+    
+        mp3_sample = SMPEG_new_rwops( SDL_RWFromMem( buffer, length ), NULL, 0, 1);
+    
         if (playMP3() == 0){
             music_buffer = buffer;
             music_buffer_length = length;
             return SOUND_MP3;
         }
     }
-
+    
     if (format & SOUND_SEQMUSIC){
         FILE *fp;
         if ( (fp = fopen(TMP_SEQMUSIC_FILE, "wb", true)) == NULL){
@@ -376,9 +386,9 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
             }
         }
     }
-
+    
     delete[] buffer;
-
+    
     return SOUND_OTHER;
 }
 
@@ -387,11 +397,13 @@ void ONScripterLabel::playCDAudio()
     if (!audio_open_flag) return;
 
     if ( cdaudio_flag ){
+#ifdef ONSCRIPTER_CDAUDIO
         if ( cdrom_info ){
             int length = cdrom_info->track[current_cd_track - 1].length / 75;
             SDL_CDPlayTracks( cdrom_info, current_cd_track - 1, 0, 1, 0 );
             timer_cdaudio_id = SDL_AddTimer( length * 1000, cdaudioCallback, NULL );
         }
+#endif
     }
     else{
         //if CD audio is not available, search the "cd" subfolder
@@ -483,13 +495,13 @@ int ONScripterLabel::playOGG(int format, unsigned char *buffer, long length, boo
         ms.ovi = ovi;
         ms.voice_sample = NULL;
         ms.volume = channelvolumes[channel];
-        decodeOggVorbis(&ms, (Uint8*)(buffer2+hdr_size), ovi->decoded_length, false);
+        decodeOggVorbis(this, (Uint8*)(buffer2+hdr_size), ovi->decoded_length, false);
         setupWaveHeader(buffer2, channels, 16, rate, ovi->decoded_length);
         Mix_Chunk *chunk = Mix_LoadWAV_RW(SDL_RWFromMem(buffer2, hdr_size+ovi->decoded_length), 1);
         delete[] buffer2;
         closeOggVorbis(ovi);
         delete[] buffer;
-
+        
         playWave(chunk, format, loop_flag, channel);
 
         return SOUND_OGG;
@@ -511,11 +523,13 @@ int ONScripterLabel::playOGG(int format, unsigned char *buffer, long length, boo
             ovi->mult2 = (int)(ovi->cvt.len_ratio*10.0);
        }
     }
-
+    
+    //SDL_LockMutex(mMusicMutex);
     music_struct.ovi = ovi;
     music_struct.volume = music_volume;
     music_struct.is_mute = !volume_on_flag;
-    Mix_HookMusic(oggcallback, &music_struct);
+    //SDL_UnlockMutex(mMusicMutex);
+    Mix_HookMusic(oggcallback, this);
 
     music_buffer = buffer;
     music_buffer_length = length;
@@ -597,7 +611,8 @@ int ONScripterLabel::playingMusic()
 int ONScripterLabel::setCurMusicVolume( int volume )
 {
     if (!audio_open_flag) return 0;
-
+    
+    //SDL_LockMutex(mMusicMutex);
     if (music_struct.voice_sample && *(music_struct.voice_sample))
         volume /= 2;
     if (Mix_GetMusicHookData() != NULL) { // for streamed MP3 & OGG
@@ -608,6 +623,7 @@ int ONScripterLabel::setCurMusicVolume( int volume )
     } else if (Mix_PlayingMusic() == 1) { // midi
         Mix_VolumeMusic( !volume_on_flag? 0 : volume * 128 / 100 );
     }
+    //SDL_UnlockMutex(mMusicMutex);
 
     return 0;
 }
@@ -615,7 +631,8 @@ int ONScripterLabel::setCurMusicVolume( int volume )
 int ONScripterLabel::setVolumeMute( bool do_mute )
 {
     if (!audio_open_flag) return 0;
-
+    
+    //SDL_LockMutex(mMusicMutex);
     int music_vol = music_volume;
     if (music_struct.voice_sample && *(music_struct.voice_sample)) //bgmdown
         music_vol /= 2;
@@ -636,8 +653,15 @@ int ONScripterLabel::setVolumeMute( bool do_mute )
         Mix_Volume( MIX_LOOPBGM_CHANNEL0, do_mute? 0 : se_volume * 128 / 100 );
     if ( wave_sample[MIX_LOOPBGM_CHANNEL1] )
         Mix_Volume( MIX_LOOPBGM_CHANNEL1, do_mute? 0 : se_volume * 128 / 100 );
+    
+    //SDL_UnlockMutex(mMusicMutex);
 
     return 0;
+}
+
+void ONScripterLabel::SMpegDisplayCallback(void* data, SMPEG_Frame* frame)
+{
+
 }
 
 int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_pos, int xpos, int ypos, int width, int height )
@@ -674,7 +698,11 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
         return 0;
     }
 
-    SMPEG *mpeg_sample = SMPEG_new_rwops( SDL_RWFromMem( movie_buffer, length ), NULL, 0 );
+    if (mSmpegMutex == nullptr)
+      mSmpegMutex = SDL_CreateMutex();
+    
+    SMPEG_Info info;
+    SMPEG *mpeg_sample = SMPEG_new_rwops( SDL_RWFromMem( movie_buffer, length ), &info, 0, 1);
     char *errstr = SMPEG_error( mpeg_sample );
     if (errstr){
         
@@ -686,8 +714,6 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
         return 0;
     }
     else {
-        SMPEG_Info info;
-        SMPEG_getinfo(mpeg_sample, &info);
         if (info.has_audio){
             stopBGM( false );
             SMPEG_enableaudio( mpeg_sample, 0 );
@@ -718,19 +744,20 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
             different_spec = false;
         }
         SMPEG_enablevideo( mpeg_sample, 1 );
-        SMPEG_setdisplay( mpeg_sample, screen_surface, NULL, NULL );
-        if (use_pos) {
-            SMPEG_scaleXY( mpeg_sample, width, height );
-            SMPEG_move( mpeg_sample, xpos, ypos );
-        }
-        else if (nomovieupscale_flag && (info.width < screen_width) &&
-                 (info.height < screen_height)) {
-            //"no-movie-upscale" set, so use its native
-            //width/height & center within the screen
-            SMPEG_scaleXY( mpeg_sample, info.width, info.height );
-            SMPEG_move( mpeg_sample, (screen_width - info.width) / 2,
-                       (screen_height - info.height) / 2 );
-        }
+        SMPEG_setdisplay(mpeg_sample, &ONScripterLabel::SMpegDisplayCallback, this, mSmpegMutex);
+        //SMPEG_setdisplay( mpeg_sample, screen_surface, NULL, NULL );
+        //if (use_pos) {
+        //    SMPEG_scaleXY( mpeg_sample, width, height );
+        //    SMPEG_move( mpeg_sample, xpos, ypos );
+        //}
+        //else if (nomovieupscale_flag && (info.width < screen_width) &&
+        //         (info.height < screen_height)) {
+        //    //"no-movie-upscale" set, so use its native
+        //    //width/height & center within the screen
+        //    SMPEG_scaleXY( mpeg_sample, info.width, info.height );
+        //    SMPEG_move( mpeg_sample, (screen_width - info.width) / 2,
+        //               (screen_height - info.height) / 2 );
+        //}
 #ifdef RCA_SCALE
         //center the movie on the screen, using standard aspect ratio
         else if ( (scr_stretch_x > 1.0) || (scr_stretch_y > 1.0) ) {
@@ -810,18 +837,21 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
                          ((SDL_KeyboardEvent *)&event)->keysym.sym == SDLK_ESCAPE )
                         done_flag = movie_click_flag;
                     else if ( ((SDL_KeyboardEvent *)&event)->keysym.sym == SDLK_f ){
-#ifndef PSP
-                        if ( !SDL_WM_ToggleFullScreen( screen_surface ) ){
+                        if ( !ToggleFullscreen(mWindow) ){
                             SMPEG_pause( mpeg_sample );
                             SDL_FreeSurface(screen_surface);
-                            if ( fullscreen_mode )
-                                screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, DEFAULT_VIDEO_SURFACE_FLAG );
+                            if (fullscreen_mode)
+                            {
+                                screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, false );
+                            }
                             else
-                                screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, DEFAULT_VIDEO_SURFACE_FLAG|SDL_FULLSCREEN );
-                            SMPEG_setdisplay( mpeg_sample, screen_surface, NULL, NULL );
+                            {
+                                screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, true );
+                            }
+                            
+                            SMPEG_setdisplay(mpeg_sample, &ONScripterLabel::SMpegDisplayCallback, this, mSmpegMutex);
                             SMPEG_play( mpeg_sample );
                         }
-#endif
                         fullscreen_mode = !fullscreen_mode;
                     }
                     else if ( ((SDL_KeyboardEvent *)&event)->keysym.sym == SDLK_m ){
@@ -913,6 +943,7 @@ void ONScripterLabel::stopMovie(SMPEG *mpeg)
 
 void ONScripterLabel::stopBGM( bool continue_flag )
 {
+#ifdef ONSCRIPTER_CDAUDIO
     if ( cdaudio_flag && cdrom_info ){
         extern SDL_TimerID timer_cdaudio_id;
 
@@ -920,6 +951,7 @@ void ONScripterLabel::stopBGM( bool continue_flag )
         if (SDL_CDStatus( cdrom_info ) >= CD_PLAYING )
             SDL_CDStop( cdrom_info );
     }
+#endif
 
     if ( mp3_sample ){
         SMPEG_stop( mp3_sample );
@@ -928,12 +960,14 @@ void ONScripterLabel::stopBGM( bool continue_flag )
         mp3_sample = NULL;
     }
 
+    //SDL_LockMutex(mMusicMutex);
     if (music_struct.ovi){
         Mix_HaltMusic();
         Mix_HookMusic( NULL, NULL );
         closeOggVorbis(music_struct.ovi);
         music_struct.ovi = NULL;
     }
+    //SDL_UnlockMutex(mMusicMutex);
 
     if ( wave_sample[MIX_BGM_CHANNEL] ){
         Mix_Pause( MIX_BGM_CHANNEL );

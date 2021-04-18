@@ -55,7 +55,9 @@
 #endif
 
 #if defined(USE_OGG_VORBIS)
-#if defined(INTEGER_OGG_VORBIS)
+#if defined(OGG_HEADER)
+#include OGG_HEADER
+#elif defined(OGG_USE_TREMOR)
 #include <tremor/ivorbisfile.h>
 #else
 #include <vorbis/vorbisfile.h>
@@ -503,6 +505,8 @@ protected:
     
     /* ---------------------------------------- */
     /* Sound related variables */
+    public:
+    //SDL_mutex* mMusicMutex;
     MusicStruct music_struct;
     int music_volume;
     int voice_volume;

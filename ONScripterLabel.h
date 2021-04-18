@@ -39,6 +39,9 @@
 #ifndef __ONSCRIPTER_LABEL_H__
 #define __ONSCRIPTER_LABEL_H__
 
+#include <optional>
+#include <utility>
+
 #include "DirPaths.h"
 #include "ScriptParser.h"
 #include "DirtyRect.h"
@@ -83,11 +86,50 @@
 
 #define NUM_GLYPH_CACHE 30
 
-#define KEYPRESS_NULL ((SDLKey)(SDLK_LAST+1)) // "null" for keypress variables
+#define KEYPRESS_NULL ((SDL_Keycode)(SDLK_AUDIOFASTFORWARD+1)) // "null" for keypress variables
 
 class ONScripterLabel : public ScriptParser
 {
 public:
+    static bool ToggleFullscreen(SDL_Window* Window);
+    void UpdateScreen(SDL_Rect dst_rect);
+    void WarpMouse(int x, int y);
+
+    template <typename SDLEvent>
+    bool TranslateMouse(SDLEvent& event)
+    {
+      const int x = event.x;
+      const int y = event.y;
+      int windowResolutionX, windowResolutionY;
+      SDL_GetWindowSize(mWindow, &windowResolutionX, &windowResolutionY);
+
+      float scaleHeight = windowResolutionY / screen_surface->h;
+      float scaleWidth = windowResolutionX / screen_surface->w;
+      float scale = std::min(scaleHeight, scaleWidth);
+  
+      SDL_Rect dstRect = {};
+      dstRect.w = scale * screen_surface->w;
+      dstRect.h = scale * screen_surface->h;
+      dstRect.x = (windowResolutionX - dstRect.w)/2;
+      dstRect.y = (windowResolutionY - dstRect.h)/2;
+
+      int new_x = (x / scale) - (dstRect.x / scale);
+      int new_y = (y / scale) - (dstRect.y / scale);
+
+      if (new_x < 0 || new_x > screen_surface->w || new_y < 0 || new_y > screen_surface->h)
+        return false;
+
+      event.x = new_x;
+      event.y = new_y;
+      return true;
+    }
+
+    SDL_Renderer* mRenderer;
+    SDL_Window* mWindow;
+    SDL_mutex* mSmpegMutex;
+    static void SMpegDisplayCallback(void* data, SMPEG_Frame* frame);
+    SDL_Surface* SDL_SetVideoMode(int width, int height, int bpp, bool fullscreen);
+
     typedef AnimationInfo::ONSBuf ONSBuf;
 
     ONScripterLabel();
@@ -399,11 +441,12 @@ protected:
     // setting skip_past_newline will help when playing older onscripter games.
     bool skip_past_newline; // don't leave 'click to skip' mode at a newline in text cmds
 
-    SDL_keysym transKey(SDL_keysym key, bool isdown);
+    SDL_Keysym transKey(SDL_Keysym key, bool isdown);
     void variableEditMode( SDL_KeyboardEvent *event );
     bool keyDownEvent( SDL_KeyboardEvent *event );
     void keyUpEvent( SDL_KeyboardEvent *event );
     bool keyPressEvent( SDL_KeyboardEvent *event );
+    bool mouseWheelEvent(SDL_MouseWheelEvent* event);
     bool mousePressEvent( SDL_MouseButtonEvent *event );
     bool mouseMoveEvent( SDL_MouseMotionEvent *event );
     void animEvent();
@@ -538,7 +581,7 @@ private:
     bool btndown_flag;
     bool transbtn_flag;
 
-    SDLKey last_keypress;
+    SDL_Keycode last_keypress;
 
     void quit(bool no_error=false);
 
@@ -945,7 +988,9 @@ private:
     char *seqmusic_file_name;
     Mix_Music *seqmusic_info;
 
+#ifdef ONSCRIPTER_CDAUDIO
     SDL_CD *cdrom_info;
+#endif
     int current_cd_track;
     bool cd_play_loop_flag;
     bool music_play_loop_flag;

@@ -1722,9 +1722,12 @@ int ONScripterLabel::mp3Command()
         if (mp3fadein_duration > 0) {
             music_volume = 0;
         }
+
+        //SDL_LockMutex(mMusicMutex);
         if (music_struct.voice_sample && *(music_struct.voice_sample)) {
             music_volume /= 2;
         }
+        //SDL_UnlockMutex(mMusicMutex);
 
         playSound(music_file_name,
                   SOUND_WAVE | SOUND_OGG_STREAMING | SOUND_MP3 | SOUND_SEQMUSIC,
@@ -1806,7 +1809,7 @@ int ONScripterLabel::movemousecursorCommand()
     int x = StretchPosX(script_h.readInt());
     int y = StretchPosY(script_h.readInt());
 
-    SDL_WarpMouse( x, y );
+    WarpMouse(x, y);
 
     return RET_CONTINUE;
 }
@@ -1848,11 +1851,7 @@ int ONScripterLabel::monocroCommand()
 
 int ONScripterLabel::minimizewindowCommand()
 {
-#ifndef PSP
-    SDL_WM_IconifyWindow();
-#endif
-
-    return RET_CONTINUE;
+  return RET_CONTINUE;
 }
 
 int ONScripterLabel::mesboxCommand()
@@ -1886,11 +1885,11 @@ int ONScripterLabel::menu_windowCommand()
     if ( fullscreen_mode ){
 #ifndef PSP
         if (async_movie) SMPEG_pause( async_movie );
-        screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, DEFAULT_VIDEO_SURFACE_FLAG );
+        screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, false );
         SDL_Rect rect = {0, 0, screen_width, screen_height};
         flushDirect( rect, refreshMode() );
         if (async_movie){
-            SMPEG_setdisplay( async_movie, screen_surface, NULL, NULL );
+            SMPEG_setdisplay(async_movie, &ONScripterLabel::SMpegDisplayCallback, this, mSmpegMutex);
             SMPEG_play( async_movie );
         }
 #endif
@@ -1919,25 +1918,21 @@ int ONScripterLabel::menu_waveoffCommand()
 int ONScripterLabel::menu_fullCommand()
 {
     if ( !fullscreen_mode ){
-#ifndef PSP
-        if (async_movie) SMPEG_pause( async_movie );
-        screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, DEFAULT_VIDEO_SURFACE_FLAG|SDL_FULLSCREEN );
-        if (screen_surface)
-            fullscreen_mode = true;
-        else {
-            fprintf(stderr, "*** menu_full: Error: %s (using windowed surface instead) ***\n", SDL_GetError());
-            screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, DEFAULT_VIDEO_SURFACE_FLAG );
-            fullscreen_mode = false;
-        }
-        SDL_Rect rect = {0, 0, screen_width, screen_height};
-        flushDirect( rect, refreshMode() );
-        if (async_movie){
-            SMPEG_setdisplay( async_movie, screen_surface, NULL, NULL );
-            SMPEG_play( async_movie );
-        }
-#else
-        fullscreen_mode = true;
-#endif
+      if (async_movie) SMPEG_pause( async_movie );
+      screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, true );
+      if (screen_surface)
+          fullscreen_mode = true;
+      else {
+          fprintf(stderr, "*** menu_full: Error: %s (using windowed surface instead) ***\n", SDL_GetError());
+          screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, false );
+          fullscreen_mode = false;
+      }
+      SDL_Rect rect = {0, 0, screen_width, screen_height};
+      flushDirect( rect, refreshMode() );
+      if (async_movie){
+          SMPEG_setdisplay(async_movie, &ONScripterLabel::SMpegDisplayCallback, this, mSmpegMutex);
+          SMPEG_play( async_movie );
+      }
     }
 
     return RET_CONTINUE;
@@ -3924,24 +3919,8 @@ int ONScripterLabel::captionCommand()
     setStr( &wm_icon_string,  buf2 );
     delete[] buf2;
     //printf("caption (utf8): '%s'\n", wm_title_string);
-    SDL_WM_SetCaption( wm_title_string, wm_icon_string );
-#ifdef WIN32
-    //convert from UTF-8 to Wide (Unicode) and thence to system ANSI
-    len = MultiByteToWideChar(CP_UTF8, 0, wm_title_string, -1, NULL, 0);
-    wchar_t *u16_tmp = new wchar_t[len];
-    MultiByteToWideChar(CP_UTF8, 0, wm_title_string, -1, u16_tmp, len);
-    len = WideCharToMultiByte(CP_ACP, 0, u16_tmp, -1, NULL, 0, NULL, NULL);
-    char *cvt = new char[len+1];
-    WideCharToMultiByte(CP_ACP, 0, u16_tmp, -1, cvt, len, NULL, NULL);
-    delete[] u16_tmp;
-
-    //set the window caption directly
-    SDL_SysWMinfo info;
-    SDL_VERSION(&info.version);
-    SDL_GetWMInfo(&info);
-    SendMessageA(info.window, WM_SETTEXT, 0, (LPARAM)cvt);
-    delete[] cvt;
-#endif //WIN32
+    SDL_SetWindowTitle(mWindow, wm_edit_string);
+    //FIXME: SDL_SetWindowIcon(mWindow, wm_icon_string);
 
     return RET_CONTINUE;
 }
@@ -4136,7 +4115,7 @@ int ONScripterLabel::btndefCommand()
 #else
             setupAnimationInfo( &btndef_info );
 #endif
-            SDL_SetAlpha( btndef_info.image_surface, DEFAULT_BLIT_FLAG, SDL_ALPHA_OPAQUE );
+            SDL_SetSurfaceBlendMode(btndef_info.image_surface, SDL_BLENDMODE_NONE);
         }
     }
 
@@ -4238,7 +4217,8 @@ int ONScripterLabel::bltCommand()
         SDL_Rect dst_rect = {dx,dy,dw,dh};
 
         SDL_BlitSurface( btndef_info.image_surface, &src_rect, screen_surface, &dst_rect );
-        SDL_UpdateRect( screen_surface, dst_rect.x, dst_rect.y, dst_rect.w, dst_rect.h );
+        //FIXME: SDL_UpdateRect( screen_surface, dst_rect.x, dst_rect.y, dst_rect.w, dst_rect.h );
+        UpdateScreen(dst_rect);
         dirty_rect.clear();
     }
     else{
@@ -4297,10 +4277,13 @@ int ONScripterLabel::bltCommand()
 int ONScripterLabel::bgmdownmodeCommand()
 {
     bgmdownmode_flag = (script_h.readInt() != 0);
+    
+    //SDL_LockMutex(mMusicMutex);
     if (bgmdownmode_flag)
         music_struct.voice_sample = &wave_sample[0];
     else
         music_struct.voice_sample = NULL;
+    //SDL_UnlockMutex(mMusicMutex);
 
     return RET_CONTINUE;
 }

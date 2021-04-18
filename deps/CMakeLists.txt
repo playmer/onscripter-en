@@ -1,0 +1,10 @@
+option(SUPPORT_OGG "Support loading OGG Vorbis music via Tremor" ON)
+
+add_subdirectory(bzip2-1.0.4)
+add_subdirectory(freetype)
+add_subdirectory(SDL2)
+add_subdirectory(SDL_mixer)
+add_subdirectory(SDL_image)
+add_subdirectory(SDL_ttf)
+add_subdirectory(soloud)
+add_subdirectory(smpeg)

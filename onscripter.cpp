@@ -141,13 +141,13 @@ static void parseOptions(int argc, char **argv, ONScripterLabel &ons, bool &hasA
             }
 #ifdef WIN32
             else if ( !strcmp( argv[0]+1, "-waveout-audio" ) ){
-                ons.setAudiodriver("waveout");
+                //FIXME: ons.setAudiodriver("waveout");
             }
 #endif
             else if ( !strcmp( argv[0]+1, "-audiodriver" ) ){
                 argc--;
                 argv++;
-                ons.setAudiodriver(argv[0]);
+                //FIXME: ons.setAudiodriver(argv[0]);
             }
             else if ( !strcmp( argv[0]+1, "-audiobuffer" ) ){
                 argc--;
@@ -409,20 +409,9 @@ static bool parseOptionFile(const char *filename, ONScripterLabel &ons, bool &ha
     return false;
 }
 
-#ifdef QWS
-int SDL_main( int argc, char **argv )
-#elif defined(PSP)
-extern "C" int main( int argc, char **argv )
-#else
 int main( int argc, char **argv )
-#endif
 {
     ONScripterLabel ons;
-
-#ifdef PSP
-    ons.disableRescale();
-    ons.enableButtonShortCut();
-#endif
 
 #ifdef MACOSX
     //Check for application bundle on Mac OS X
