@@ -89,7 +89,8 @@ extern long decodeOggVorbis(ONScripterLabel *music_struct, Uint8 *buf_dst, long 
  * **************************************** */
 extern "C" void mp3callback( void *userdata, Uint8 *stream, int len )
 {
-    if ( SMPEG_playAudio( (SMPEG*)userdata, stream, len ) == 0 ){
+    if ( SMPEG_playAudio( (SMPEG*)userdata, stream, len ) == 0 )
+    {
         SDL_Event event;
         event.type = ONS_SOUND_EVENT;
         SDL_PushEvent(&event);
@@ -98,11 +99,12 @@ extern "C" void mp3callback( void *userdata, Uint8 *stream, int len )
 
 extern "C" void oggcallback( void *userdata, Uint8 *stream, int len )
 {
-    if (decodeOggVorbis((ONScripterLabel*)userdata, stream, len, true) == 0){
-        SDL_Event event;
-        event.type = ONS_SOUND_EVENT;
-        SDL_PushEvent(&event);
-    }
+    //if (decodeOggVorbis((ONScripterLabel*)userdata, stream, len, true) == 0)
+    //{
+    //    SDL_Event event;
+    //    event.type = ONS_SOUND_EVENT;
+    //    SDL_PushEvent(&event);
+    //}
 }
 
 extern "C" Uint32 SDLCALL animCallback( Uint32 interval, void *param )

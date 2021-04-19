@@ -24,6 +24,7 @@ PRIVATE
     SDL2main
     SDL2::image
     SDL2_ttf
+    soloud
 )
 
 target_sources(onscripter_en

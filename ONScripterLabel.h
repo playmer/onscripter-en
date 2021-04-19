@@ -41,6 +41,8 @@
 
 #include <optional>
 #include <utility>
+#include <vector>
+#include <unordered_map>
 
 #include "DirPaths.h"
 #include "ScriptParser.h"
@@ -50,11 +52,15 @@
 #include <SDL_ttf.h>
 #include <SDL_mixer.h>
 
+#include "soloud.h"
+#include "soloud_wav.h"
 #ifdef MP3_MAD
 #include "MadWrapper.h"
 #else
 #include <smpeg.h>
 #endif
+
+#undef min
 
 #define DEFAULT_VIDEO_SURFACE_FLAG (SDL_SWSURFACE)
 
@@ -1011,6 +1017,17 @@ private:
 
     char *music_cmd;
     char *seqmusic_cmd;
+
+    public:
+    struct SoundEngine
+    {
+      SoLoud::Soloud mSoLoud;
+      std::vector<SoLoud::handle> mHandles;
+      std::unordered_map<std::string, SoLoud::Wav> mSamples;
+    };
+    protected:
+
+    SoundEngine mSoundEngine;
 
     int playSound(const char *filename, int format, bool loop_flag, int channel=0);
     void playCDAudio();

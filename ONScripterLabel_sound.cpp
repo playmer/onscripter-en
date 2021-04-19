@@ -37,6 +37,8 @@
 
 #include "ONScripterLabel.h"
 #include <new>
+#include <filesystem>
+
 #ifdef LINUX
 #include <signal.h>
 #endif
@@ -205,11 +207,53 @@ extern long decodeOggVorbis(ONScripterLabel *scripterLabel, Uint8 *buf_dst, long
     return total_len;
 }
 
+void PlayOnSoundEngine(ONScripterLabel::SoundEngine& engine, const char *filename, bool loop, unsigned char* buffer = nullptr, size_t length = 0)
+{
+  std::filesystem::path path = filename;
+
+  if (buffer == nullptr)
+  {
+    if (false == std::filesystem::exists(path))
+      path.replace_extension(".wav");
+
+    if (false == std::filesystem::exists(path))
+      path.replace_extension(".ogg");
+
+    if (false == std::filesystem::exists(path))
+      path.replace_extension(".mp3");
+
+    if (false == std::filesystem::exists(path))
+      return;
+  }
+
+  auto it = engine.mSamples.find(filename);
+  if (it == engine.mSamples.end())
+  {
+    auto sampleIt = engine.mSamples.emplace(filename, SoLoud::Wav{});
+    it = sampleIt.first;
+
+    if (buffer == nullptr)
+      it->second.load(path.u8string().c_str());
+    else
+      it->second.loadMem(buffer, length, true, false);
+  }
+  
+  engine.mHandles.push_back(engine.mSoLoud.play(it->second));
+  engine.mSoLoud.setLooping(engine.mHandles.back(), loop);
+}
+
 int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag, int channel)
 {
     if ( !audio_open_flag ) return SOUND_NONE;
 
+    static bool gFirstTime = false;
+    if (gFirstTime == false)
+    {
+      gFirstTime = true;
+      mSoundEngine.mSoLoud.init();
+    }
 
+    PlayOnSoundEngine(mSoundEngine, filename, loop_flag);
 
     long length = script_h.cBR->getFileLength( filename );
     if (length == 0) return SOUND_NONE;
@@ -224,6 +268,7 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
             return SOUND_NONE;
     }
     
+    bool fileLoaded = false;
     unsigned char *buffer;
     
     if ((format & (SOUND_MP3 | SOUND_OGG_STREAMING)) && 
@@ -241,154 +286,158 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
             return SOUND_NONE;
         }
         script_h.cBR->getFile( filename, buffer );
+        fileLoaded = true;
     }
     
-    if (format & (SOUND_OGG | SOUND_OGG_STREAMING)){
-        int ret = playOGG(format, buffer, length, loop_flag, channel);
-        if (ret & (SOUND_OGG | SOUND_OGG_STREAMING)) return ret;
-    }
-    
-    /* check for WMA (i.e. ASF header format) */
-    if ( IS_ASF_HDR(buffer) ){
-        snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
-        "sound file '%s' is in WMA format, skipping", filename);
-        errorAndCont(script_h.errbuf);
-        delete[] buffer;
-        return SOUND_OTHER;
-    }
-    
-    /* check for AVI header format */
-    if ( IS_AVI_HDR(buffer) ){
-        snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
-        "sound file '%s' is in AVI format, skipping", filename);
-        errorAndCont(script_h.errbuf);
-        delete[] buffer;
-        return SOUND_OTHER;
-    }
-    
-    if (format & SOUND_WAVE){
-        if (strncmp((char*) buffer, "RIFF", 4) != 0) {
-            // bad (encrypted?) header; need to recreate
-            // assumes the first 128 bytes are bad (encrypted)
-            // _and_ that the file contains uncompressed PCM data
-            char *fmtname = new char[strlen(filename) + strlen(".fmt") + 1];
-            sprintf(fmtname, "%s.fmt", filename);
-            unsigned int fmtlen = script_h.cBR->getFileLength( fmtname );
-            if ( fmtlen >= 8) {
-                // a file called filename + ".fmt" exists, of appropriate size;
-                // read fmt info
-                unsigned char *buffer2 = new unsigned char[fmtlen];
-                script_h.cBR->getFile( fmtname, buffer2 );
-    
-                int channels, bits;
-                unsigned long rate=0, data_length=0;
-    
-                channels = buffer2[0];
-                for (int i=5; i>1; i--) {
-                    rate = (rate << 8) + buffer2[i];
-                }
-                bits = buffer2[6];
-                if (fmtlen >= 12) {
-                    // read the data_length
-                    for (int i=11; i>7; i--) {
-                        data_length = (data_length << 8) + buffer2[i];
-                    }
-                } else {
-                    // no data_length provided, fake it from the buffer length
-                    data_length = length - sizeof(WAVE_HEADER) - sizeof(WAVE_DATA_HEADER);
-                }
-                unsigned char fill = 0;
-                if (bits == 8) fill = 128;
-                for (int i=0; (i<128 && i<length); i++) {
-                    //clear the first 128 bytes (encryption noise)
-                    buffer[i] = fill;
-                }
-                if (fmtlen > 12) {
-                    setupWaveHeader(buffer, channels, bits, rate, data_length,
-                                    fmtlen - 12, buffer2 + 12);
-                } else {
-                    setupWaveHeader(buffer, channels, bits, rate, data_length);
-                }
-                if ((bits == 8) && (fmtlen < 12)) {
-                    //hack: clear likely "pad bytes" at the end of the buffer
-                    //      (only on 8-bit samples when the fmt file doesn't
-                    //      include the data length)
-                    int i = 1;
-                    while (i<5 && buffer[length-i] == 0) {
-                        buffer[length - i] = fill;
-                        i++;
-                    }
-                }
-                delete[] buffer2;
-            }
-            delete[] fmtname;
-        }
-        Mix_Chunk *chunk = Mix_LoadWAV_RW(SDL_RWFromMem(buffer, length), 1);
-        if (playWave(chunk, format, loop_flag, channel) == 0){
-            delete[] buffer;
-            return SOUND_WAVE;
-        }
-    }
-    
-    if ((format & SOUND_MP3) &&
-        !(IS_MIDI_HDR(buffer) && (format & SOUND_SEQMUSIC))){ //bypass MIDIs
-        if (music_cmd){
-            FILE *fp;
-            if ( (fp = fopen(TMP_MUSIC_FILE, "wb", true)) == NULL){
-                snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
-                         "can't open temporary music file %s", TMP_MUSIC_FILE);
-                errorAndCont(script_h.errbuf);
-            }
-            else{
-                if (fwrite(buffer, 1, length, fp) != (size_t)length){
-                    snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
-                             "can't write to temporary music file %s", TMP_MUSIC_FILE);
-                    errorAndCont(script_h.errbuf);
-                }
-                fclose( fp );
-                ext_music_play_once_flag = !loop_flag;
-                if (playExternalMusic(loop_flag) == 0){
-                    music_buffer = buffer;
-                    music_buffer_length = length;
-                    return SOUND_MP3;
-                }
-            }
-        }
-    
-        mp3_sample = SMPEG_new_rwops( SDL_RWFromMem( buffer, length ), NULL, 0, 1);
-    
-        if (playMP3() == 0){
-            music_buffer = buffer;
-            music_buffer_length = length;
-            return SOUND_MP3;
-        }
-    }
-    
-    if (format & SOUND_SEQMUSIC){
-        FILE *fp;
-        if ( (fp = fopen(TMP_SEQMUSIC_FILE, "wb", true)) == NULL){
-            snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
-                     "can't open temporary music file %s", TMP_SEQMUSIC_FILE);
-            errorAndCont(script_h.errbuf);
-        }
-        else{
-            if (fwrite(buffer, 1, length, fp) != (size_t)length){
-                snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
-                         "can't write to temporary music file %s",
-                         TMP_SEQMUSIC_FILE);
-                errorAndCont(script_h.errbuf);
-            }
-            fclose( fp );
-            ext_music_play_once_flag = !loop_flag;
-            if (playSequencedMusic(loop_flag) == 0){
-                delete[] buffer;
-                return SOUND_SEQMUSIC;
-            }
-        }
-    }
-    
-    delete[] buffer;
-    
+    if (fileLoaded)
+      PlayOnSoundEngine(mSoundEngine, filename, loop_flag, buffer, length);
+
+    //if (format & (SOUND_OGG | SOUND_OGG_STREAMING)){
+    //    int ret = playOGG(format, buffer, length, loop_flag, channel);
+    //    if (ret & (SOUND_OGG | SOUND_OGG_STREAMING)) return ret;
+    //}
+    //
+    ///* check for WMA (i.e. ASF header format) */
+    //if ( IS_ASF_HDR(buffer) ){
+    //    snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
+    //    "sound file '%s' is in WMA format, skipping", filename);
+    //    errorAndCont(script_h.errbuf);
+    //    delete[] buffer;
+    //    return SOUND_OTHER;
+    //}
+    //
+    ///* check for AVI header format */
+    //if ( IS_AVI_HDR(buffer) ){
+    //    snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
+    //    "sound file '%s' is in AVI format, skipping", filename);
+    //    errorAndCont(script_h.errbuf);
+    //    delete[] buffer;
+    //    return SOUND_OTHER;
+    //}
+    //
+    //if (format & SOUND_WAVE){
+    //    if (strncmp((char*) buffer, "RIFF", 4) != 0) {
+    //        // bad (encrypted?) header; need to recreate
+    //        // assumes the first 128 bytes are bad (encrypted)
+    //        // _and_ that the file contains uncompressed PCM data
+    //        char *fmtname = new char[strlen(filename) + strlen(".fmt") + 1];
+    //        sprintf(fmtname, "%s.fmt", filename);
+    //        unsigned int fmtlen = script_h.cBR->getFileLength( fmtname );
+    //        if ( fmtlen >= 8) {
+    //            // a file called filename + ".fmt" exists, of appropriate size;
+    //            // read fmt info
+    //            unsigned char *buffer2 = new unsigned char[fmtlen];
+    //            script_h.cBR->getFile( fmtname, buffer2 );
+    //
+    //            int channels, bits;
+    //            unsigned long rate=0, data_length=0;
+    //
+    //            channels = buffer2[0];
+    //            for (int i=5; i>1; i--) {
+    //                rate = (rate << 8) + buffer2[i];
+    //            }
+    //            bits = buffer2[6];
+    //            if (fmtlen >= 12) {
+    //                // read the data_length
+    //                for (int i=11; i>7; i--) {
+    //                    data_length = (data_length << 8) + buffer2[i];
+    //                }
+    //            } else {
+    //                // no data_length provided, fake it from the buffer length
+    //                data_length = length - sizeof(WAVE_HEADER) - sizeof(WAVE_DATA_HEADER);
+    //            }
+    //            unsigned char fill = 0;
+    //            if (bits == 8) fill = 128;
+    //            for (int i=0; (i<128 && i<length); i++) {
+    //                //clear the first 128 bytes (encryption noise)
+    //                buffer[i] = fill;
+    //            }
+    //            if (fmtlen > 12) {
+    //                setupWaveHeader(buffer, channels, bits, rate, data_length,
+    //                                fmtlen - 12, buffer2 + 12);
+    //            } else {
+    //                setupWaveHeader(buffer, channels, bits, rate, data_length);
+    //            }
+    //            if ((bits == 8) && (fmtlen < 12)) {
+    //                //hack: clear likely "pad bytes" at the end of the buffer
+    //                //      (only on 8-bit samples when the fmt file doesn't
+    //                //      include the data length)
+    //                int i = 1;
+    //                while (i<5 && buffer[length-i] == 0) {
+    //                    buffer[length - i] = fill;
+    //                    i++;
+    //                }
+    //            }
+    //            delete[] buffer2;
+    //        }
+    //        delete[] fmtname;
+    //    }
+    //    Mix_Chunk *chunk = Mix_LoadWAV_RW(SDL_RWFromMem(buffer, length), 1);
+    //    if (playWave(chunk, format, loop_flag, channel) == 0){
+    //        delete[] buffer;
+    //        return SOUND_WAVE;
+    //    }
+    //}
+    //
+    //if ((format & SOUND_MP3) &&
+    //    !(IS_MIDI_HDR(buffer) && (format & SOUND_SEQMUSIC))){ //bypass MIDIs
+    //    if (music_cmd){
+    //        FILE *fp;
+    //        if ( (fp = fopen(TMP_MUSIC_FILE, "wb", true)) == NULL){
+    //            snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
+    //                     "can't open temporary music file %s", TMP_MUSIC_FILE);
+    //            errorAndCont(script_h.errbuf);
+    //        }
+    //        else{
+    //            if (fwrite(buffer, 1, length, fp) != (size_t)length){
+    //                snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
+    //                         "can't write to temporary music file %s", TMP_MUSIC_FILE);
+    //                errorAndCont(script_h.errbuf);
+    //            }
+    //            fclose( fp );
+    //            ext_music_play_once_flag = !loop_flag;
+    //            if (playExternalMusic(loop_flag) == 0){
+    //                music_buffer = buffer;
+    //                music_buffer_length = length;
+    //                return SOUND_MP3;
+    //            }
+    //        }
+    //    }
+    //
+    //    mp3_sample = SMPEG_new_rwops( SDL_RWFromMem( buffer, length ), NULL, 0, 1);
+    //
+    //    if (playMP3() == 0){
+    //        music_buffer = buffer;
+    //        music_buffer_length = length;
+    //        return SOUND_MP3;
+    //    }
+    //}
+    //
+    //if (format & SOUND_SEQMUSIC){
+    //    FILE *fp;
+    //    if ( (fp = fopen(TMP_SEQMUSIC_FILE, "wb", true)) == NULL){
+    //        snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
+    //                 "can't open temporary music file %s", TMP_SEQMUSIC_FILE);
+    //        errorAndCont(script_h.errbuf);
+    //    }
+    //    else{
+    //        if (fwrite(buffer, 1, length, fp) != (size_t)length){
+    //            snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
+    //                     "can't write to temporary music file %s",
+    //                     TMP_SEQMUSIC_FILE);
+    //            errorAndCont(script_h.errbuf);
+    //        }
+    //        fclose( fp );
+    //        ext_music_play_once_flag = !loop_flag;
+    //        if (playSequencedMusic(loop_flag) == 0){
+    //            delete[] buffer;
+    //            return SOUND_SEQMUSIC;
+    //        }
+    //    }
+    //}
+    //
+    //delete[] buffer;
+    //
     return SOUND_OTHER;
 }
 
@@ -410,16 +459,16 @@ void ONScripterLabel::playCDAudio()
         //for a file named "track01.mp3" or similar, depending on the
         //track number; check for mp3, ogg and wav files
         char filename[256];
-        sprintf( filename, "cd\\track%2.2d.mp3", current_cd_track );
-        int ret = playSound( filename, SOUND_MP3, cd_play_loop_flag );
-        if (ret == SOUND_MP3) return;
+        //sprintf( filename, "cd\\track%2.2d.mp3", current_cd_track );
+        //int ret = playSound( filename, SOUND_MP3, cd_play_loop_flag );
+        //if (ret == SOUND_MP3) return;
 
         sprintf( filename, "cd\\track%2.2d.ogg", current_cd_track );
-        ret = playSound( filename, SOUND_OGG_STREAMING, cd_play_loop_flag );
+        int ret = playSound( filename, SOUND_OGG_STREAMING, cd_play_loop_flag );
         if (ret == SOUND_OGG_STREAMING) return;
 
-        sprintf( filename, "cd\\track%2.2d.wav", current_cd_track );
-        ret = playSound( filename, SOUND_WAVE, cd_play_loop_flag, MIX_BGM_CHANNEL );
+        //sprintf( filename, "cd\\track%2.2d.wav", current_cd_track );
+        //ret = playSound( filename, SOUND_WAVE, cd_play_loop_flag, MIX_BGM_CHANNEL );
     }
 }
 
