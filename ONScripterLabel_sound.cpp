@@ -472,120 +472,6 @@ void ONScripterLabel::playCDAudio()
     }
 }
 
-int ONScripterLabel::playWave(Mix_Chunk *chunk, int format, bool loop_flag, int channel)
-{
-    Mix_Pause( channel );
-    if ( wave_sample[channel] ) Mix_FreeChunk( wave_sample[channel] );
-    wave_sample[channel] = chunk;
-
-    if (!chunk) return -1;
-
-    if      (channel < ONS_MIX_CHANNELS)
-        Mix_Volume( channel, !volume_on_flag? 0 : channelvolumes[channel] * 128 / 100 );
-    else if (channel == MIX_CLICKVOICE_CHANNEL)
-        Mix_Volume( channel, !volume_on_flag? 0 : se_volume * 128 / 100 );
-    else if (channel == MIX_BGM_CHANNEL)
-        Mix_Volume( channel, !volume_on_flag? 0 : music_volume * 128 / 100 );
-    else
-        Mix_Volume( channel, !volume_on_flag? 0 : DEFAULT_VOLUME * 128 / 100 );
-
-    if ( !(format & SOUND_PRELOAD) )
-        Mix_PlayChannel( channel, wave_sample[channel], loop_flag?-1:0 );
-
-    return 0;
-}
-
-int ONScripterLabel::playMP3()
-{
-    if ( SMPEG_error( mp3_sample ) ){
-        //printf(" failed. [%s]\n",SMPEG_error( mp3_sample ));
-        // The line below fails. ?????
-        //SMPEG_delete( mp3_sample );
-        mp3_sample = NULL;
-        return -1;
-    }
-
-#ifndef MP3_MAD
-    //Mion - SMPEG doesn't handle different audio spec well, so we might
-    // reset the SDL mixer
-    SDL_AudioSpec wanted;
-    SMPEG_wantedSpec( mp3_sample, &wanted );
-    if (( (wanted.format != audio_format.format) ||
-          (wanted.freq != audio_format.freq)) && match_bgm_audio_flag) {
-        Mix_CloseAudio();
-        openAudio(wanted.freq, wanted.format, wanted.channels);
-        if (!audio_open_flag) {
-            // didn't work, use the old settings
-            openAudio();
-       }
-    }
-    SMPEG_enableaudio( mp3_sample, 0 );
-    SMPEG_actualSpec( mp3_sample, &audio_format );
-    SMPEG_enableaudio( mp3_sample, 1 );
-#endif
-    SMPEG_setvolume( mp3_sample, !volume_on_flag? 0 : music_volume );
-    Mix_HookMusic( mp3callback, mp3_sample );
-    SMPEG_play( mp3_sample );
-
-    return 0;
-}
-
-int ONScripterLabel::playOGG(int format, unsigned char *buffer, long length, bool loop_flag, int channel)
-{
-    int channels, rate;
-    OVInfo *ovi = openOggVorbis(buffer, length, channels, rate);
-    if (ovi == NULL) return SOUND_OTHER;
-
-    if (format & SOUND_OGG){
-        const unsigned int hdr_size = sizeof(WAVE_HEADER)+sizeof(WAVE_DATA_HEADER);
-        unsigned char *buffer2 = new unsigned char[hdr_size+ovi->decoded_length];
-        
-        MusicStruct ms;
-        ms.ovi = ovi;
-        ms.voice_sample = NULL;
-        ms.volume = channelvolumes[channel];
-        decodeOggVorbis(this, (Uint8*)(buffer2+hdr_size), ovi->decoded_length, false);
-        setupWaveHeader(buffer2, channels, 16, rate, ovi->decoded_length);
-        Mix_Chunk *chunk = Mix_LoadWAV_RW(SDL_RWFromMem(buffer2, hdr_size+ovi->decoded_length), 1);
-        delete[] buffer2;
-        closeOggVorbis(ovi);
-        delete[] buffer;
-        
-        playWave(chunk, format, loop_flag, channel);
-
-        return SOUND_OGG;
-    }
-
-    if ( (audio_format.format != AUDIO_S16) ||
-         ((audio_format.freq != rate) && match_bgm_audio_flag) ) {
-        Mix_CloseAudio();
-        openAudio(rate, AUDIO_S16, channels);
-        ovi->cvt.needed = 0;
-        if (!audio_open_flag) {
-            // didn't work, use the old settings
-            openAudio();
-            ovi->cvt_len = 0;
-            SDL_BuildAudioCVT(&ovi->cvt,
-                      AUDIO_S16, channels, rate,
-                      audio_format.format, audio_format.channels, audio_format.freq);
-            ovi->mult1 = 10;
-            ovi->mult2 = (int)(ovi->cvt.len_ratio*10.0);
-       }
-    }
-    
-    //SDL_LockMutex(mMusicMutex);
-    music_struct.ovi = ovi;
-    music_struct.volume = music_volume;
-    music_struct.is_mute = !volume_on_flag;
-    //SDL_UnlockMutex(mMusicMutex);
-    Mix_HookMusic(oggcallback, this);
-
-    music_buffer = buffer;
-    music_buffer_length = length;
-
-    return SOUND_OGG_STREAMING;
-}
-
 int ONScripterLabel::playExternalMusic(bool loop_flag)
 {
     int music_looping = loop_flag ? -1 : 0;
@@ -681,7 +567,6 @@ int ONScripterLabel::setVolumeMute( bool do_mute )
 {
     if (!audio_open_flag) return 0;
     
-    //SDL_LockMutex(mMusicMutex);
     int music_vol = music_volume;
     if (music_struct.voice_sample && *(music_struct.voice_sample)) //bgmdown
         music_vol /= 2;
@@ -703,8 +588,6 @@ int ONScripterLabel::setVolumeMute( bool do_mute )
     if ( wave_sample[MIX_LOOPBGM_CHANNEL1] )
         Mix_Volume( MIX_LOOPBGM_CHANNEL1, do_mute? 0 : se_volume * 128 / 100 );
     
-    //SDL_UnlockMutex(mMusicMutex);
-
     return 0;
 }
 
