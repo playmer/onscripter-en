@@ -139,6 +139,14 @@ int ONScripterLabel::waveCommand()
 
 int ONScripterLabel::wavestopCommand()
 {
+    printf("Stopping channel: %d\n", MIX_WAVE_CHANNEL);
+    auto channelIt = mSoundEngine.mHandles.find(MIX_WAVE_CHANNEL);
+    if (channelIt != mSoundEngine.mHandles.end())
+    {
+      mSoundEngine.mSoLoud.stop(channelIt->second);
+      mSoundEngine.mHandles.erase(channelIt);
+    }
+
     if ( audio_open_flag && wave_sample[MIX_WAVE_CHANNEL] ){
         Mix_Pause( MIX_WAVE_CHANNEL );
         Mix_FreeChunk( wave_sample[MIX_WAVE_CHANNEL] );
