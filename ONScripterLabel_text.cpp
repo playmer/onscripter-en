@@ -153,7 +153,7 @@ void ONScripterLabel::drawGlyph( SDL_Surface *dst_surface, Fontinfo *info, SDL_C
         auto y = xy[1];
         auto fontAscent = TTF_FontAscent((TTF_Font*)info->ttf_font);
 
-        if (!shadow_flag) printf("%c(%d,%d)\n", *text, x, y);
+        //if (!shadow_flag) printf("%c(%d,%d)\n", *text, x, y);
 
         dst_rect.x = x;// +minx;
         dst_rect.y = y;// +fontAscent;// +maxy + miny;

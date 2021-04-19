@@ -207,9 +207,13 @@ extern long decodeOggVorbis(ONScripterLabel *scripterLabel, Uint8 *buf_dst, long
     return total_len;
 }
 
-void PlayOnSoundEngine(ONScripterLabel::SoundEngine& engine, const char *filename, bool loop, unsigned char* buffer = nullptr, size_t length = 0)
+bool PlayOnSoundEngine(ONScripterLabel::SoundEngine& engine, const char *filename, bool loop, int channel, unsigned char* buffer = nullptr, size_t length = 0)
 {
   std::filesystem::path path = filename;
+
+  if (path.extension() == ".ogg")
+    channel = MIX_BGM_CHANNEL; // probably need to do this in the other cases as well...
+
 
   if (buffer == nullptr)
   {
@@ -217,13 +221,16 @@ void PlayOnSoundEngine(ONScripterLabel::SoundEngine& engine, const char *filenam
       path.replace_extension(".wav");
 
     if (false == std::filesystem::exists(path))
+    {
+      channel = MIX_BGM_CHANNEL; // probably need to do this in the other cases as well...
       path.replace_extension(".ogg");
+    }
 
     if (false == std::filesystem::exists(path))
       path.replace_extension(".mp3");
 
     if (false == std::filesystem::exists(path))
-      return;
+      return false;
   }
 
   auto it = engine.mSamples.find(filename);
@@ -237,9 +244,21 @@ void PlayOnSoundEngine(ONScripterLabel::SoundEngine& engine, const char *filenam
     else
       it->second.loadMem(buffer, length, true, false);
   }
+
+  auto channelIt = engine.mHandles.find(channel);
+  if (channelIt != engine.mHandles.end())
+  {
+    engine.mSoLoud.stop(channelIt->second);
+    engine.mHandles.erase(channelIt);
+  }
   
-  engine.mHandles.push_back(engine.mSoLoud.play(it->second));
-  engine.mSoLoud.setLooping(engine.mHandles.back(), loop);
+  engine.mHandles.emplace(channel, engine.mSoLoud.play(it->second));
+
+  auto channelHandle = engine.mHandles[channel];
+  engine.mSoLoud.setLooping(channelHandle, loop);
+
+  printf("Playing filename: %s \t channel: %d\n", filename, channel);
+  return true;
 }
 
 int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag, int channel)
@@ -253,7 +272,10 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
       mSoundEngine.mSoLoud.init();
     }
 
-    PlayOnSoundEngine(mSoundEngine, filename, loop_flag);
+    if (PlayOnSoundEngine(mSoundEngine, filename, loop_flag, channel))
+    {
+      return SOUND_OTHER;
+    }
 
     long length = script_h.cBR->getFileLength( filename );
     if (length == 0) return SOUND_NONE;
@@ -290,7 +312,10 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
     }
     
     if (fileLoaded)
-      PlayOnSoundEngine(mSoundEngine, filename, loop_flag, buffer, length);
+    {
+      if (format & SOUND_OGG_STREAMING) channel = MIX_BGM_CHANNEL;
+      PlayOnSoundEngine(mSoundEngine, filename, loop_flag, channel, buffer, length);
+    }
 
     //if (format & (SOUND_OGG | SOUND_OGG_STREAMING)){
     //    int ret = playOGG(format, buffer, length, loop_flag, channel);
@@ -875,69 +900,74 @@ void ONScripterLabel::stopMovie(SMPEG *mpeg)
 
 void ONScripterLabel::stopBGM( bool continue_flag )
 {
-#ifdef ONSCRIPTER_CDAUDIO
-    if ( cdaudio_flag && cdrom_info ){
-        extern SDL_TimerID timer_cdaudio_id;
-
-        clearTimer( timer_cdaudio_id );
-        if (SDL_CDStatus( cdrom_info ) >= CD_PLAYING )
-            SDL_CDStop( cdrom_info );
-    }
-#endif
-
-    if ( mp3_sample ){
-        SMPEG_stop( mp3_sample );
-        Mix_HookMusic( NULL, NULL );
-        SMPEG_delete( mp3_sample );
-        mp3_sample = NULL;
-    }
-
-    //SDL_LockMutex(mMusicMutex);
-    if (music_struct.ovi){
-        Mix_HaltMusic();
-        Mix_HookMusic( NULL, NULL );
-        closeOggVorbis(music_struct.ovi);
-        music_struct.ovi = NULL;
-    }
-    //SDL_UnlockMutex(mMusicMutex);
-
-    if ( wave_sample[MIX_BGM_CHANNEL] ){
-        Mix_Pause( MIX_BGM_CHANNEL );
-        Mix_FreeChunk( wave_sample[MIX_BGM_CHANNEL] );
-        wave_sample[MIX_BGM_CHANNEL] = NULL;
-    }
-
-    if ( !continue_flag ){
-        setStr( &music_file_name, NULL );
-        music_play_loop_flag = false;
-        if ( music_buffer ){
-            delete[] music_buffer;
-            music_buffer = NULL;
-        }
-    }
-
-    if ( seqmusic_info ){
-
-#if defined(MACOSX) //insani
-        clearTimer( timer_seqmusic_id );
-#endif
-
-        ext_music_play_once_flag = true;
-        Mix_HaltMusic();
-        Mix_FreeMusic( seqmusic_info );
-        seqmusic_info = NULL;
-    }
-    if ( !continue_flag ){
-        setStr( &seqmusic_file_name, NULL );
-        seqmusic_play_loop_flag = false;
-    }
-
-    if ( music_info ){
-        ext_music_play_once_flag = true;
-        Mix_HaltMusic();
-        Mix_FreeMusic( music_info );
-        music_info = NULL;
-    }
+  printf("Stopping channel: %d\n", MIX_BGM_CHANNEL);
+  auto channelIt = mSoundEngine.mHandles.find(MIX_BGM_CHANNEL);
+  if (channelIt != mSoundEngine.mHandles.end())
+  {
+    mSoundEngine.mSoLoud.stop(channelIt->second);
+    mSoundEngine.mHandles.erase(channelIt);
+  }
+//#ifdef ONSCRIPTER_CDAUDIO
+//    if ( cdaudio_flag && cdrom_info ){
+//        extern SDL_TimerID timer_cdaudio_id;
+//
+//        clearTimer( timer_cdaudio_id );
+//        if (SDL_CDStatus( cdrom_info ) >= CD_PLAYING )
+//            SDL_CDStop( cdrom_info );
+//    }
+//#endif
+//
+//    if ( mp3_sample ){
+//        SMPEG_stop( mp3_sample );
+//        Mix_HookMusic( NULL, NULL );
+//        SMPEG_delete( mp3_sample );
+//        mp3_sample = NULL;
+//    }
+//
+//    if (music_struct.ovi){
+//        Mix_HaltMusic();
+//        Mix_HookMusic( NULL, NULL );
+//        closeOggVorbis(music_struct.ovi);
+//        music_struct.ovi = NULL;
+//    }
+//
+//    if ( wave_sample[MIX_BGM_CHANNEL] ){
+//        Mix_Pause( MIX_BGM_CHANNEL );
+//        Mix_FreeChunk( wave_sample[MIX_BGM_CHANNEL] );
+//        wave_sample[MIX_BGM_CHANNEL] = NULL;
+//    }
+//
+//    if ( !continue_flag ){
+//        setStr( &music_file_name, NULL );
+//        music_play_loop_flag = false;
+//        if ( music_buffer ){
+//            delete[] music_buffer;
+//            music_buffer = NULL;
+//        }
+//    }
+//
+//    if ( seqmusic_info ){
+//
+//#if defined(MACOSX) //insani
+//        clearTimer( timer_seqmusic_id );
+//#endif
+//
+//        ext_music_play_once_flag = true;
+//        Mix_HaltMusic();
+//        Mix_FreeMusic( seqmusic_info );
+//        seqmusic_info = NULL;
+//    }
+//    if ( !continue_flag ){
+//        setStr( &seqmusic_file_name, NULL );
+//        seqmusic_play_loop_flag = false;
+//    }
+//
+//    if ( music_info ){
+//        ext_music_play_once_flag = true;
+//        Mix_HaltMusic();
+//        Mix_FreeMusic( music_info );
+//        music_info = NULL;
+//    }
 
     if ( !continue_flag ) current_cd_track = -1;
 }

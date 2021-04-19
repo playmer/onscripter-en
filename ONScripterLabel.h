@@ -1022,7 +1022,7 @@ private:
     struct SoundEngine
     {
       SoLoud::Soloud mSoLoud;
-      std::vector<SoLoud::handle> mHandles;
+      std::unordered_map<int, SoLoud::handle> mHandles;
       std::unordered_map<std::string, SoLoud::Wav> mSamples;
     };
     protected:
