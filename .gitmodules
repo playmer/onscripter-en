@@ -6,7 +6,7 @@
 	url = https://github.com/libsdl-org/SDL.git
 [submodule "deps/SDL_Image"]
 	path = deps/SDL_Image
-	url = https://github.com/libsdl-org/SDL_image.git
+	url = https://github.com/playmer/SDL_image.git
 [submodule "deps/SDL_ttf"]
 	path = deps/SDL_ttf
 	url = https://github.com/playmer/SDL_ttf.git
