@@ -412,22 +412,11 @@ void ONScripterLabel::flushEventSub( SDL_Event &event )
         }
     }
     else if ( event.type == ONS_SEQMUSIC_EVENT ){
-#if defined(MACOSX) //insani
-        if (!Mix_PlayingMusic())
-        {
-            ext_music_play_once_flag = !seqmusic_play_loop_flag;
-            Mix_FreeMusic( seqmusic_info );
-            playSequencedMusic(seqmusic_play_loop_flag);
-        }
-#else
         ext_music_play_once_flag = !seqmusic_play_loop_flag;
-        Mix_FreeMusic( seqmusic_info );
         playSequencedMusic(seqmusic_play_loop_flag);
-#endif
     }
     else if ( event.type == ONS_MUSIC_EVENT ){
         ext_music_play_once_flag = !music_play_loop_flag;
-        Mix_FreeMusic(music_info);
         playExternalMusic(music_play_loop_flag);
     }
     else if ( event.type == ONS_WAVE_EVENT ){ // for processing btntime2 and automode correctly
@@ -834,19 +823,17 @@ void ONScripterLabel::variableEditMode( SDL_KeyboardEvent *event )
 
           case EDIT_SE_VOLUME_MODE:
             se_volume = variable_edit_num;
-            for ( i=1 ; i<ONS_MIX_CHANNELS ; i++ )
-                if ( wave_sample[i] )
-                    Mix_Volume( i, !volume_on_flag? 0 : se_volume * 128 / 100 );
-            if ( wave_sample[MIX_LOOPBGM_CHANNEL0] )
-                Mix_Volume( MIX_LOOPBGM_CHANNEL0, !volume_on_flag? 0 : se_volume * 128 / 100 );
-            if ( wave_sample[MIX_LOOPBGM_CHANNEL1] )
-                Mix_Volume( MIX_LOOPBGM_CHANNEL1, !volume_on_flag? 0 : se_volume * 128 / 100 );
+            
+            for ( int i=1 ; i<ONS_MIX_CHANNELS ; i++ )
+              SetVolumeOnChannel(mSoundEngine, i, !volume_on_flag, se_volume);
+    
+            SetVolumeOnChannel(mSoundEngine, MIX_LOOPBGM_CHANNEL0, !volume_on_flag, se_volume);
+            SetVolumeOnChannel(mSoundEngine, MIX_LOOPBGM_CHANNEL1, !volume_on_flag, se_volume);
             break;
 
           case EDIT_VOICE_VOLUME_MODE:
             voice_volume = variable_edit_num;
-            if ( wave_sample[0] )
-                Mix_Volume( 0, !volume_on_flag? 0 : voice_volume * 128 / 100 );
+            SetVolumeOnChannel(mSoundEngine, 0, !volume_on_flag, voice_volume);
 
           default:
             break;
@@ -1463,6 +1450,93 @@ void ONScripterLabel::timerEvent( void )
     volatile_button_state.reset();
 }
 
+enum WhatToDo
+{
+  Nothing,
+  Break,
+  Return
+};
+
+int ONScripterLabel::HandleGamepadEvent(SDL_Event& event, bool had_automode, bool& ctrl_toggle)
+{
+    SDL_KeyboardEvent keyEvent{};
+
+    switch (event.cbutton.button)
+    {
+          // Treat these as mouse buttons
+        case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+        case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+        case SDL_CONTROLLER_BUTTON_A:
+        case SDL_CONTROLLER_BUTTON_B:
+        case SDL_CONTROLLER_BUTTON_X:
+        case SDL_CONTROLLER_BUTTON_Y:
+        {
+          if (event.cbutton.state == SDL_PRESSED && !btndown_flag)
+            return WhatToDo::Break;
+
+          SDL_MouseButtonEvent mouseEvent;
+          mouseEvent.type = (event.cbutton.state == SDL_PRESSED) ? SDL_MOUSEBUTTONUP : SDL_MOUSEBUTTONDOWN;
+          mouseEvent.x = current_button_state.x;
+          mouseEvent.y = current_button_state.y;
+          
+          mouseEvent.button = SDL_BUTTON_LEFT;
+
+          if (event.cbutton.button == SDL_CONTROLLER_BUTTON_B
+              || event.cbutton.button == SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)
+            mouseEvent.button = SDL_BUTTON_RIGHT;
+
+          auto ret = mousePressEvent(&event.button);
+          if (ret) return Return;
+          if (!(event_mode & WAIT_TEXTOUT_MODE) && had_automode && !automode_flag){
+              clearTimer(break_id);
+          }
+        }
+
+          // Treat these as keyboard buttons
+        case SDL_CONTROLLER_BUTTON_BACK:
+          keyEvent.keysym.sym = SDLK_ESCAPE; goto KEYHANDLER;
+        case SDL_CONTROLLER_BUTTON_GUIDE: 
+          keyEvent.keysym.sym = SDLK_ESCAPE; goto KEYHANDLER;
+        case SDL_CONTROLLER_BUTTON_START:
+          keyEvent.keysym.sym = SDLK_ESCAPE; goto KEYHANDLER;
+        //case SDL_CONTROLLER_BUTTON_LEFTSTICK:
+        //case SDL_CONTROLLER_BUTTON_RIGHTSTICK:
+        case SDL_CONTROLLER_BUTTON_DPAD_UP:
+          keyEvent.keysym.sym = SDLK_UP; goto KEYHANDLER;
+        case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+          keyEvent.keysym.sym = SDLK_DOWN; goto KEYHANDLER;
+        case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
+          keyEvent.keysym.sym = SDLK_LEFT; goto KEYHANDLER;
+        case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
+          keyEvent.keysym.sym = SDLK_RIGHT; goto KEYHANDLER;
+        {
+          KEYHANDLER:
+            if (event.cbutton.state == SDL_PRESSED)
+            {
+              keyEvent.type = SDL_KEYDOWN;
+            
+              auto ret = keyDownEvent(&keyEvent);
+              ctrl_toggle ^= (ctrl_pressed_status != 0);
+              //allow skipping sleep waits with start of ctrl keydown
+              ret |= (event_mode & WAIT_SLEEP_MODE) && ctrl_toggle;
+              if ( btndown_flag )
+                  ret |= keyPressEvent(&keyEvent);
+              if (ret) return Return;
+            }
+            else
+            {
+              keyEvent.type = SDL_KEYUP;
+
+              keyUpEvent(&keyEvent);
+              auto ret = keyPressEvent(&keyEvent);
+              if (ret) return Return;
+            }
+        }
+    }
+
+    return Nothing;
+}
+
 
 void ONScripterLabel::runEventLoop()
 {
@@ -1484,6 +1558,60 @@ void ONScripterLabel::runEventLoop()
         }
 
         switch (event.type) {
+              // Joypad Events
+            case SDL_CONTROLLERDEVICEADDED:
+            {
+              auto gamepadEvent = event.cdevice;
+        
+              auto pad = SDL_GameControllerOpen(gamepadEvent.which);
+          
+              if (pad)
+              {
+                auto name = SDL_GameControllerName(pad);
+                SDL_Joystick* joystick = SDL_GameControllerGetJoystick(pad);
+                SDL_JoystickID instanceId = SDL_JoystickInstanceID(joystick);
+
+                printf("Added %s, %d\n", name, instanceId);
+                //mControllers.emplace(instanceId, Controller(pad));
+              }
+            }
+            case SDL_CONTROLLERDEVICEREMOVED:
+            {
+              auto gamepadEvent = event.cdevice;
+        
+              //if (auto it = mControllers.find(gamepadEvent.which); 
+              //    it != mControllers.end())
+              //{
+              //  mControllers.erase(it);
+              //}
+
+              printf("Removed %d\n", gamepadEvent.which);
+              break;
+            }
+            case SDL_CONTROLLERBUTTONDOWN:
+            case SDL_CONTROLLERBUTTONUP:
+            {
+              auto ret = HandleGamepadEvent(event, had_automode, ctrl_toggle);
+              if (ret == WhatToDo::Break) break;
+              else if (ret == WhatToDo::Return) return;
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
           case SDL_MOUSEMOTION:
             if (!TranslateMouse(event.motion)) return;
             ret = mouseMoveEvent(&event.motion);
@@ -1510,11 +1638,11 @@ void ONScripterLabel::runEventLoop()
             }
             break;
 
-          case SDL_JOYBUTTONDOWN:
-            event.key.type = SDL_KEYDOWN;
-            event.key.keysym.sym = transJoystickButton(event.jbutton.button);
-            if(event.key.keysym.sym == SDLK_UNKNOWN)
-                break;
+          //case SDL_JOYBUTTONDOWN:
+          //  event.key.type = SDL_KEYDOWN;
+          //  event.key.keysym.sym = transJoystickButton(event.jbutton.button);
+          //  if(event.key.keysym.sym == SDLK_UNKNOWN)
+          //      break;
           case SDL_KEYDOWN:
             event.key.keysym = transKey(event.key.keysym, true);
             ret = keyDownEvent(&event.key);
@@ -1526,11 +1654,11 @@ void ONScripterLabel::runEventLoop()
             if (ret) return;
             break;
 
-          case SDL_JOYBUTTONUP:
-            event.key.type = SDL_KEYUP;
-            event.key.keysym.sym = transJoystickButton(event.jbutton.button);
-            if(event.key.keysym.sym == SDLK_UNKNOWN)
-                break;
+          //case SDL_JOYBUTTONUP:
+          //  event.key.type = SDL_KEYUP;
+          //  event.key.keysym.sym = transJoystickButton(event.jbutton.button);
+          //  if(event.key.keysym.sym == SDLK_UNKNOWN)
+          //      break;
 
           case SDL_KEYUP:
             event.key.keysym = transKey(event.key.keysym, false);
@@ -1539,22 +1667,22 @@ void ONScripterLabel::runEventLoop()
             if (ret) return;
             break;
 
-          case SDL_JOYAXISMOTION:
-          {
-              SDL_KeyboardEvent ke = transJoystickAxis(event.jaxis);
-              if (ke.keysym.sym != SDLK_UNKNOWN){
-                  if (ke.type == SDL_KEYDOWN){
-                      keyDownEvent( &ke );
-                      if (btndown_flag)
-                          keyPressEvent( &ke );
-                  }
-                  else if (ke.type == SDL_KEYUP){
-                      keyUpEvent( &ke );
-                      keyPressEvent( &ke );
-                  }
-              }
-              break;
-          }
+          //case SDL_JOYAXISMOTION:
+          //{
+          //    SDL_KeyboardEvent ke = transJoystickAxis(event.jaxis);
+          //    if (ke.keysym.sym != SDLK_UNKNOWN){
+          //        if (ke.type == SDL_KEYDOWN){
+          //            keyDownEvent( &ke );
+          //            if (btndown_flag)
+          //                keyPressEvent( &ke );
+          //        }
+          //        else if (ke.type == SDL_KEYUP){
+          //            keyUpEvent( &ke );
+          //            keyPressEvent( &ke );
+          //        }
+          //    }
+          //    break;
+          //}
 
           case ONS_TIMER_EVENT:
             timerEvent();

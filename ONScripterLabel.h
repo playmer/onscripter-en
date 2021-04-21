@@ -74,12 +74,14 @@
 
 #define DEFAULT_VOLUME 100
 #define ONS_MIX_CHANNELS 50
-#define ONS_MIX_EXTRA_CHANNELS 5
+#define ONS_MIX_EXTRA_CHANNELS 7
 #define MIX_WAVE_CHANNEL (ONS_MIX_CHANNELS+0)
 #define MIX_CLICKVOICE_CHANNEL (ONS_MIX_CHANNELS+1)
 #define MIX_BGM_CHANNEL (ONS_MIX_CHANNELS+2)
 #define MIX_LOOPBGM_CHANNEL0 (ONS_MIX_CHANNELS+3)
 #define MIX_LOOPBGM_CHANNEL1 (ONS_MIX_CHANNELS+4)
+#define MIX_SEQUENCE_CHANNEL0 (ONS_MIX_CHANNELS+5)
+#define MIX_EXTERNAL_CHANNEL1 (ONS_MIX_CHANNELS+6)
 
 #if defined(PDA) && !defined(PSP)
 #define DEFAULT_AUDIO_RATE 22050
@@ -100,6 +102,7 @@ public:
     static bool ToggleFullscreen(SDL_Window* Window);
     void UpdateScreen(SDL_Rect dst_rect);
     void WarpMouse(int x, int y);
+    int HandleGamepadEvent(SDL_Event& event, bool had_automode, bool& ctrl_toggle);
 
     template <typename SDLEvent>
     bool TranslateMouse(SDLEvent& event)
@@ -992,7 +995,6 @@ private:
 
     bool seqmusic_play_loop_flag;
     char *seqmusic_file_name;
-    Mix_Music *seqmusic_info;
 
 #ifdef ONSCRIPTER_CDAUDIO
     SDL_CD *cdrom_info;
@@ -1167,5 +1169,8 @@ private:
     void setupLookbackButton();
     void executeSystemLookback();
 };
+
+
+void SetVolumeOnChannel(ONScripterLabel::SoundEngine& engine, int channel, bool muted, int volume);
 
 #endif // __ONSCRIPTER_LABEL_H__

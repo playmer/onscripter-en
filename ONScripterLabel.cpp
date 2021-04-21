@@ -423,14 +423,13 @@ void ONScripterLabel::initSDL()
     /* ---------------------------------------- */
     /* Initialize SDL */
 
-    if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0 ){
+    if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) < 0 ){
         errorAndExit("Couldn't initialize SDL", SDL_GetError(), "Init Error", true);
         return; //dummy
     }
     atexit(SDL_Quit_Wrapper); // work-around for OS/2
 
     SDL_AudioInit("directsound");
-
 
 #ifdef ONSCRIPTER_CDAUDIO
     if( cdaudio_flag && SDL_InitSubSystem( SDL_INIT_CDROM ) < 0 ){
@@ -720,7 +719,7 @@ ONScripterLabel::ONScripterLabel()
   sin_table(NULL), cos_table(NULL), whirl_table(NULL),
   breakup_cells(NULL), breakup_cellforms(NULL), breakup_mask(NULL),
   shelter_select_link(NULL), default_cdrom_drive(NULL),
-  wave_file_name(NULL), seqmusic_file_name(NULL), seqmusic_info(NULL),
+  wave_file_name(NULL), seqmusic_file_name(NULL),
 #ifdef ONSCRIPTER_CDAUDIO
   cdrom_info(NULL),
 #endif
@@ -2553,20 +2552,20 @@ void ONScripterLabel::quit(bool no_error)
     if (async_movie) stopMovie(async_movie);
     async_movie = NULL;
     
-#ifdef ONSCRIPTER_CDAUDIO
-    if ( cdrom_info ){
-        SDL_CDStop( cdrom_info );
-        SDL_CDClose( cdrom_info );
-    }
-#endif
-    if ( seqmusic_info ){
-        Mix_HaltMusic();
-        Mix_FreeMusic( seqmusic_info );
-    }
-    if ( music_info ){
-        Mix_HaltMusic();
-        Mix_FreeMusic( music_info );
-    }
+//#ifdef ONSCRIPTER_CDAUDIO
+//    if ( cdrom_info ){
+//        SDL_CDStop( cdrom_info );
+//        SDL_CDClose( cdrom_info );
+//    }
+//#endif
+//    if ( seqmusic_info ){
+//        Mix_HaltMusic();
+//        Mix_FreeMusic( seqmusic_info );
+//    }
+//    if ( music_info ){
+//        Mix_HaltMusic();
+//        Mix_FreeMusic( music_info );
+//    }
 }
 
 void ONScripterLabel::disableGetButtonFlag()

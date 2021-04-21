@@ -854,21 +854,26 @@ int ONScripterLabel::shellCommand()
     return RET_CONTINUE;
 }
 
+void SetVolumeOnChannel(ONScripterLabel::SoundEngine& engine, int channel, bool muted, int volume)
+{
+  printf("Set Volume: %d Muted: %d\n", volume, (int)muted);
+
+  if (muted)
+    volume = 0;
+  auto it = engine.mHandles.find(channel);
+  if (it != engine.mHandles.end())
+    engine.mSoLoud.setVolume(it->second, volume / 100.f);
+}
+
 int ONScripterLabel::sevolCommand()
 {
     se_volume = script_h.readInt();
 
-    for ( int i=1 ; i<ONS_MIX_CHANNELS ; i++ ) {
-        if ( wave_sample[i] )
-            Mix_Volume( i, !volume_on_flag? 0 : se_volume * 128 / 100 );
-        channelvolumes[i] = se_volume;
-     }
-
-    if ( wave_sample[MIX_LOOPBGM_CHANNEL0] )
-        Mix_Volume( MIX_LOOPBGM_CHANNEL0, !volume_on_flag? 0 : se_volume * 128 / 100 );
-    if ( wave_sample[MIX_LOOPBGM_CHANNEL1] )
-        Mix_Volume( MIX_LOOPBGM_CHANNEL1, !volume_on_flag? 0 : se_volume * 128 / 100 );
-
+    for ( int i=1 ; i<ONS_MIX_CHANNELS ; i++ )
+      SetVolumeOnChannel(mSoundEngine, i, !volume_on_flag, se_volume);
+    
+    SetVolumeOnChannel(mSoundEngine, MIX_LOOPBGM_CHANNEL0, !volume_on_flag, se_volume);
+    SetVolumeOnChannel(mSoundEngine, MIX_LOOPBGM_CHANNEL1, !volume_on_flag, se_volume);
     return RET_CONTINUE;
 }
 
@@ -1163,14 +1168,11 @@ int ONScripterLabel::selectCommand()
 
     refreshMouseOverButton();
 
-    bool actual_rmode = rmode_flag;
-    rmode_flag = false;
     event_mode = WAIT_TEXT_MODE | WAIT_BUTTON_MODE | WAIT_TIMER_MODE;
     do {
-        waitEvent(-1);
+        if (waitEvent(-1)) return RET_CONTINUE;
     } while ( !current_button_state.valid_flag ||
             (current_button_state.button <= 0) );
-    rmode_flag = actual_rmode;
 
     if ( selectvoice_file_name[SELECTVOICE_SELECT] )
         playSound(selectvoice_file_name[SELECTVOICE_SELECT],
