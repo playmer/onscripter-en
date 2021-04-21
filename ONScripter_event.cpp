@@ -30,7 +30,7 @@
 // Modified by Mion, November 2009, to update from
 // Ogapee's 20091115 release source code.
 
-#include "ONScripterLabel.h"
+#include "ONScripter.h"
 #ifdef LINUX
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -82,7 +82,7 @@ static inline void clearTimer(SDL_TimerID &timer_id)
     }
 }
 
-extern long decodeOggVorbis(ONScripterLabel *music_struct, Uint8 *buf_dst, long len, bool do_rate_conversion);
+extern long decodeOggVorbis(ONScripter *music_struct, Uint8 *buf_dst, long len, bool do_rate_conversion);
 
 /* **************************************** *
  * Callback functions
@@ -235,7 +235,7 @@ extern "C" void waveCallback( int channel )
 //static keychk unikey[SDLK_AUDIOFASTFORWARD+1];
 #endif
 
-SDL_Keysym ONScripterLabel::transKey(SDL_Keysym key, bool isdown)
+SDL_Keysym ONScripter::transKey(SDL_Keysym key, bool isdown)
 {
   //FIXME: Unicode
   ////printf("got key: %d (unicode %d)\n", event.key.keysym.sym, event.key.keysym.unicode);
@@ -323,7 +323,7 @@ SDL_KeyboardEvent transJoystickAxis(SDL_JoyAxisEvent &jaxis)
     return event;
 }
 
-void ONScripterLabel::flushEventSub( SDL_Event &event )
+void ONScripter::flushEventSub( SDL_Event &event )
 {
     //event related to streaming media
     if ( event.type == ONS_SOUND_EVENT ){
@@ -444,14 +444,14 @@ void ONScripterLabel::flushEventSub( SDL_Event &event )
     }
 }
 
-void ONScripterLabel::flushEvent()
+void ONScripter::flushEvent()
 {
     SDL_Event event;
     while( SDL_PollEvent( &event ) )
         flushEventSub( event );
 }
 
-void ONScripterLabel::advancePhase( int count )
+void ONScripter::advancePhase( int count )
 {
     clearTimer(timer_id);
 
@@ -459,7 +459,7 @@ void ONScripterLabel::advancePhase( int count )
     timer_id = SDL_AddTimer( count, timerCallback, NULL );
 }
 
-void ONScripterLabel::advanceAnimPhase( int count )
+void ONScripter::advanceAnimPhase( int count )
 {
     if ( anim_timer_id == NULL ){
         resetRemainingTime(count);
@@ -467,7 +467,7 @@ void ONScripterLabel::advanceAnimPhase( int count )
     }
 }
 
-void ONScripterLabel::waitEventSub(int count)
+void ONScripter::waitEventSub(int count)
 {
     if (break_id != NULL){ // already in wait queue
         return;
@@ -512,7 +512,7 @@ void ONScripterLabel::waitEventSub(int count)
     clearTimer(break_id);
 }
 
-bool ONScripterLabel::waitEvent( int count )
+bool ONScripter::waitEvent( int count )
 {
     while(1){
         waitEventSub( count );
@@ -531,7 +531,7 @@ bool ONScripterLabel::waitEvent( int count )
     return false;
 }
 
-void ONScripterLabel::trapHandler()
+void ONScripter::trapHandler()
 {
     trap_mode = TRAP_NONE;
     stopCursorAnimation( clickstr_state );
@@ -541,7 +541,7 @@ void ONScripterLabel::trapHandler()
 /* **************************************** *
  * Event handlers
  * **************************************** */
-bool ONScripterLabel::mouseMoveEvent( SDL_MouseMotionEvent *event )
+bool ONScripter::mouseMoveEvent( SDL_MouseMotionEvent *event )
 {
     current_button_state.x = event->x;
     current_button_state.y = event->y;
@@ -572,7 +572,7 @@ bool ONScripterLabel::mouseMoveEvent( SDL_MouseMotionEvent *event )
 }
 
 
-bool ONScripterLabel::mouseWheelEvent( SDL_MouseWheelEvent* event )
+bool ONScripter::mouseWheelEvent( SDL_MouseWheelEvent* event )
 // returns true if should break out of the event loop
 {
     if ( variable_edit_mode ) return false;
@@ -646,7 +646,7 @@ bool ONScripterLabel::mouseWheelEvent( SDL_MouseWheelEvent* event )
         return false;
 }
 
-bool ONScripterLabel::mousePressEvent( SDL_MouseButtonEvent *event )
+bool ONScripter::mousePressEvent( SDL_MouseButtonEvent *event )
 // returns true if should break out of the event loop
 {
     if ( variable_edit_mode ) return false;
@@ -735,7 +735,7 @@ bool ONScripterLabel::mousePressEvent( SDL_MouseButtonEvent *event )
         return false;
 }
 
-void ONScripterLabel::variableEditMode( SDL_KeyboardEvent *event )
+void ONScripter::variableEditMode( SDL_KeyboardEvent *event )
 {
     if (event_mode & WAIT_BUTTON_MODE)
         last_keypress = KEYPRESS_NULL;
@@ -903,7 +903,7 @@ void ONScripterLabel::variableEditMode( SDL_KeyboardEvent *event )
     //FIXME: SDL_SetWindowIcon(mWindow, wm_icon_string);
 }
 
-void ONScripterLabel::shiftCursorOnButton( int diff )
+void ONScripter::shiftCursorOnButton( int diff )
 //moves the mouse cursor to the new button "moused-over" via keystroke
 {
     int num = 0;
@@ -955,7 +955,7 @@ void ONScripterLabel::shiftCursorOnButton( int diff )
     }
 }
 
-bool ONScripterLabel::keyDownEvent( SDL_KeyboardEvent *event )
+bool ONScripter::keyDownEvent( SDL_KeyboardEvent *event )
 // returns true if should break out of the event loop
 {
     if (event_mode & WAIT_BUTTON_MODE)
@@ -1005,7 +1005,7 @@ bool ONScripterLabel::keyDownEvent( SDL_KeyboardEvent *event )
     return false;
 }
 
-void ONScripterLabel::keyUpEvent( SDL_KeyboardEvent *event )
+void ONScripter::keyUpEvent( SDL_KeyboardEvent *event )
 {
     if (event_mode & WAIT_BUTTON_MODE)
         last_keypress = event->keysym.sym;
@@ -1036,7 +1036,7 @@ void ONScripterLabel::keyUpEvent( SDL_KeyboardEvent *event )
     }
 }
 
-bool ONScripterLabel::keyPressEvent( SDL_KeyboardEvent *event )
+bool ONScripter::keyPressEvent( SDL_KeyboardEvent *event )
 // returns true if should break out of the event loop
 {
     //reset the button state
@@ -1425,7 +1425,7 @@ bool ONScripterLabel::keyPressEvent( SDL_KeyboardEvent *event )
     return false;
 }
 
-void ONScripterLabel::animEvent( void )
+void ONScripter::animEvent( void )
 {
     if (!(event_mode & WAIT_NO_ANIM_MODE)){
         int duration = proceedAnimation();
@@ -1438,7 +1438,7 @@ void ONScripterLabel::animEvent( void )
     }
 }
 
-void ONScripterLabel::timerEvent( void )
+void ONScripter::timerEvent( void )
 {
     int duration = proceedCursorAnimation();
 
@@ -1457,7 +1457,7 @@ enum WhatToDo
   Return
 };
 
-int ONScripterLabel::HandleGamepadEvent(SDL_Event& event, bool had_automode, bool& ctrl_toggle)
+int ONScripter::HandleGamepadEvent(SDL_Event& event, bool had_automode, bool& ctrl_toggle)
 {
     SDL_KeyboardEvent keyEvent{};
 
@@ -1538,7 +1538,7 @@ int ONScripterLabel::HandleGamepadEvent(SDL_Event& event, bool had_automode, boo
 }
 
 
-void ONScripterLabel::runEventLoop()
+void ONScripter::runEventLoop()
 {
     SDL_Event event, tmp_event;
     bool started_in_automode = automode_flag;
@@ -1769,7 +1769,7 @@ void ONScripterLabel::runEventLoop()
                 flushDirect( rect, refreshMode() );
             }
             if (async_movie){
-                SMPEG_setdisplay(mpeg_sample, &ONScripterLabel::SMpegDisplayCallback, this, mSmpegMutex);
+                SMPEG_setdisplay(mpeg_sample, &ONScripter::SMpegDisplayCallback, this, mSmpegMutex);
                 SMPEG_play( async_movie );
             }
             break;

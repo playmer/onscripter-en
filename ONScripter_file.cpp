@@ -35,7 +35,7 @@
 // Modified by Mion, April 2009, to update from
 // Ogapee's 20090331 release source code.
 
-#include "ONScripterLabel.h"
+#include "ONScripter.h"
 
 #if defined(LINUX) || defined(MACOSX)
 #include <sys/types.h>
@@ -58,7 +58,7 @@ extern "C" void c2pstrcpy(Str255 dst, const char *src);	//#include <TextUtils.h>
 
 #define READ_LENGTH 4096
 
-void ONScripterLabel::searchSaveFile( SaveFileInfo &save_file_info, int no )
+void ONScripter::searchSaveFile( SaveFileInfo &save_file_info, int no )
 {
     char file_name[256];
 
@@ -180,7 +180,7 @@ void ONScripterLabel::searchSaveFile( SaveFileInfo &save_file_info, int no )
                                    true, use_fullwidth );
 }
 
-int ONScripterLabel::loadSaveFile( int no, bool input_flag )
+int ONScripter::loadSaveFile( int no, bool input_flag )
 {
     char filename[16];
     sprintf( filename, "save%d.dat", no );
@@ -547,7 +547,7 @@ int ONScripterLabel::loadSaveFile( int no, bool input_flag )
     return 0;
 }
 
-void ONScripterLabel::saveMagicNumber( bool output_flag )
+void ONScripter::saveMagicNumber( bool output_flag )
 {
     for ( unsigned int i=0 ; i<strlen( SAVEFILE_MAGIC_NUMBER ) ; i++ )
         writeChar( SAVEFILE_MAGIC_NUMBER[i], output_flag );
@@ -555,7 +555,7 @@ void ONScripterLabel::saveMagicNumber( bool output_flag )
     writeChar( SAVEFILE_VERSION_MINOR, output_flag );
 }
 
-int ONScripterLabel::saveSaveFile( int no, const char *savestr, bool no_error )
+int ONScripter::saveSaveFile( int no, const char *savestr, bool no_error )
 {
     // make save data structure on memory
     if ((no < 0) || (saveon_flag && internal_saveon_flag)){

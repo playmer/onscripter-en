@@ -1,6 +1,6 @@
 /* -*- C++ -*-
  * 
- *  ONScripterLabel_effect_cascade.cpp
+ *  ONScripter_effect_cascade.cpp
  *    - Emulation of Takashi Toyama's "cascade.dll" NScripter plugin effect
  *
  *  Copyright (c) 2008-2011 "Uncle" Mion Sonozaki
@@ -23,9 +23,9 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "ONScripterLabel.h"
+#include "ONScripter.h"
 
-void ONScripterLabel::effectCascade( char *params, int duration )
+void ONScripter::effectCascade( char *params, int duration )
 {
     enum {
         //some constants for cascade

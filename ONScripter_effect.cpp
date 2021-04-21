@@ -1,6 +1,6 @@
 /* -*- C++ -*-
  *
- *  ONScripterLabel_effect.cpp - Effect executer of ONScripter-EN
+ *  ONScripter_effect.cpp - Effect executer of ONScripter-EN
  *
  *  Copyright (c) 2001-2009 Ogapee. All rights reserved.
  *  (original ONScripter, of which this is a fork).
@@ -32,7 +32,7 @@
  *  "trvswave.dll", and "breakup.dll" NScripter plugin effects.
  */
 
-#include "ONScripterLabel.h"
+#include "ONScripter.h"
 
 #define EFFECT_STRIPE_WIDTH ExpandPos(16)
 #define EFFECT_STRIPE_CURTAIN_WIDTH ExpandPos(24)
@@ -40,7 +40,7 @@
 
 static char *dll=NULL, *params=NULL; //for dll-based effects
 
-bool ONScripterLabel::setEffect( EffectLink *effect, bool generate_effect_dst, bool update_backup_surface )
+bool ONScripter::setEffect( EffectLink *effect, bool generate_effect_dst, bool update_backup_surface )
 {
     if ( effect->effect == 0 ) return true;
 
@@ -137,7 +137,7 @@ bool ONScripterLabel::setEffect( EffectLink *effect, bool generate_effect_dst, b
     return false;
 }
 
-bool ONScripterLabel::doEffect( EffectLink *effect, bool clear_dirty_region )
+bool ONScripter::doEffect( EffectLink *effect, bool clear_dirty_region )
 {
     bool first_time = (effect_counter == 0);
 
@@ -518,7 +518,7 @@ bool ONScripterLabel::doEffect( EffectLink *effect, bool clear_dirty_region )
     }
 }
 
-void ONScripterLabel::drawEffect(SDL_Rect *dst_rect, SDL_Rect *src_rect, SDL_Surface *surface)
+void ONScripter::drawEffect(SDL_Rect *dst_rect, SDL_Rect *src_rect, SDL_Surface *surface)
 {
     SDL_Rect clipped_rect;
     if (AnimationInfo::doClipping(dst_rect, &dirty_rect.bounding_box, &clipped_rect)) return;
@@ -532,7 +532,7 @@ void ONScripterLabel::drawEffect(SDL_Rect *dst_rect, SDL_Rect *src_rect, SDL_Sur
     SDL_BlitSurface(surface, src_rect, accumulation_surface, dst_rect);
 }
 
-void ONScripterLabel::generateMosaic( SDL_Surface *src_surface, int level )
+void ONScripter::generateMosaic( SDL_Surface *src_surface, int level )
 {
     int i, j, ii, jj;
     int width = 160;
@@ -571,7 +571,7 @@ void ONScripterLabel::generateMosaic( SDL_Surface *src_surface, int level )
 
 // An interesting builtin effect... this causes a semi-transparent
 // time-lapse expansion of the image, producing a sort of "hyperspace" effect
-void ONScripterLabel::doFlushout( int level )
+void ONScripter::doFlushout( int level )
 {
     int i, j, ii, jj;
 

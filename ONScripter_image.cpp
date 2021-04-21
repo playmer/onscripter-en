@@ -30,13 +30,13 @@
 // Modified by Mion, November 2009, to update from
 // Ogapee's 20091115 release source code.
 
-#include "ONScripterLabel.h"
+#include "ONScripter.h"
 #include <new>
 #include <cstdio>
 
 #include "graphics_blend.h"
 
-SDL_Surface *ONScripterLabel::loadImage( char *filename, bool *has_alpha )
+SDL_Surface *ONScripter::loadImage( char *filename, bool *has_alpha )
 {
     if ( !filename ) return NULL;
 
@@ -135,7 +135,7 @@ SDL_Surface *ONScripterLabel::loadImage( char *filename, bool *has_alpha )
     return ret;
 }
 
-SDL_Surface *ONScripterLabel::createRectangleSurface(char *filename)
+SDL_Surface *ONScripter::createRectangleSurface(char *filename)
 {
     int c=1, w=0, h=0;
     while (filename[c] != 0x0a && filename[c] != 0x00){
@@ -191,7 +191,7 @@ SDL_Surface *ONScripterLabel::createRectangleSurface(char *filename)
     return tmp;
 }
 
-SDL_Surface *ONScripterLabel::createSurfaceFromFile(char *filename, int *location)
+SDL_Surface *ONScripter::createSurfaceFromFile(char *filename, int *location)
 {
     char* alt_buffer = 0;
     unsigned long length = script_h.cBR->getFileLength( filename );
@@ -287,7 +287,7 @@ SDL_Surface *ONScripterLabel::createSurfaceFromFile(char *filename, int *locatio
 // dst: accumulation_surface
 // src1: effect_src_surface
 // src2: effect_dst_surface
-void ONScripterLabel::effectBlend( SDL_Surface *mask_surface, int trans_mode,
+void ONScripter::effectBlend( SDL_Surface *mask_surface, int trans_mode,
                                    Uint32 mask_value, SDL_Rect *clip,
                                    SDL_Surface *src1, SDL_Surface *src2, SDL_Surface *dst )
 {
@@ -395,7 +395,7 @@ void ONScripterLabel::effectBlend( SDL_Surface *mask_surface, int trans_mode,
 // alphaBlendText
 // dst: ONSBuf surface (accumulation_surface)
 // txt: 8bit surface (TTF_RenderGlyph_Shaded())
-void ONScripterLabel::alphaBlendText( SDL_Surface *dst_surface, SDL_Rect dst_rect,
+void ONScripter::alphaBlendText( SDL_Surface *dst_surface, SDL_Rect dst_rect,
                                       SDL_Surface *txt_surface, SDL_Color &color, SDL_Rect *clip, bool rotate_flag )
 {
     int x2=0, y2=0;
@@ -463,7 +463,7 @@ void ONScripterLabel::alphaBlendText( SDL_Surface *dst_surface, SDL_Rect dst_rec
     SDL_UnlockSurface( dst_surface );
 }
 
-void ONScripterLabel::makeNegaSurface( SDL_Surface *surface, SDL_Rect &clip )
+void ONScripter::makeNegaSurface( SDL_Surface *surface, SDL_Rect &clip )
 {
     SDL_LockSurface( surface );
     ONSBuf *buf = (ONSBuf *)surface->pixels + clip.y * surface->w + clip.x;
@@ -478,7 +478,7 @@ void ONScripterLabel::makeNegaSurface( SDL_Surface *surface, SDL_Rect &clip )
     SDL_UnlockSurface( surface );
 }
 
-void ONScripterLabel::makeMonochromeSurface( SDL_Surface *surface, SDL_Rect &clip )
+void ONScripter::makeMonochromeSurface( SDL_Surface *surface, SDL_Rect &clip )
 {
     SDL_LockSurface( surface );
     ONSBuf *buffer = (ONSBuf *)surface->pixels + clip.y * surface->w + clip.x;
@@ -496,7 +496,7 @@ void ONScripterLabel::makeMonochromeSurface( SDL_Surface *surface, SDL_Rect &cli
     SDL_UnlockSurface( surface );
 }
 
-void ONScripterLabel::refreshSurface( SDL_Surface *surface, SDL_Rect *clip_src, int refresh_mode )
+void ONScripter::refreshSurface( SDL_Surface *surface, SDL_Rect *clip_src, int refresh_mode )
 {
     if (refresh_mode == REFRESH_NONE_MODE) return;
 
@@ -616,7 +616,7 @@ void ONScripterLabel::refreshSurface( SDL_Surface *surface, SDL_Rect *clip_src, 
     }
 }
 
-void ONScripterLabel::refreshSprite( int sprite_no, bool active_flag,
+void ONScripter::refreshSprite( int sprite_no, bool active_flag,
 				     int cell_no, SDL_Rect *check_src_rect,
 				     SDL_Rect *check_dst_rect )
 {
@@ -637,7 +637,7 @@ void ONScripterLabel::refreshSprite( int sprite_no, bool active_flag,
     }
 }
 
-void ONScripterLabel::createBackground()
+void ONScripter::createBackground()
 {
     bg_info.num_of_cells = 1;
     bg_info.trans_mode = AnimationInfo::TRANS_COPY;

@@ -30,7 +30,7 @@
 
 namespace ons_gfx {
 
-    //Mion: for resizing (moved from ONScripterLabel)
+    //Mion: for resizing (moved from ONScripter)
     void resetResizeBuffer();
     int resizeSurface( SDL_Surface *src, SDL_Surface *dst, int num_cells=1 );
 

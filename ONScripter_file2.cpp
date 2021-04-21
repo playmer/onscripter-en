@@ -33,9 +33,9 @@
 // Modified by Mion, April 2009, to update from
 // Ogapee's 20090331 release source code.
 
-#include "ONScripterLabel.h"
+#include "ONScripter.h"
 
-int ONScripterLabel::loadSaveFile2( int file_version, bool input_flag )
+int ONScripter::loadSaveFile2( int file_version, bool input_flag )
 {
 //printf("loading file, version %d\n", file_version);
 
@@ -658,7 +658,7 @@ int ONScripterLabel::loadSaveFile2( int file_version, bool input_flag )
     return 0;
 }
 
-void ONScripterLabel::saveSaveFile2( bool output_flag )
+void ONScripter::saveSaveFile2( bool output_flag )
 {
     int i, j;
     

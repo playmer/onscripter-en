@@ -27,7 +27,7 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "ONScripterLabel.h"
+#include "ONScripter.h"
 #include "version.h"
 
 #include <cstdio>
@@ -120,7 +120,7 @@ static void optionVersion()
     exit(0);
 }
 
-static void parseOptions(int argc, char **argv, ONScripterLabel &ons, bool &hasArchivePath)
+static void parseOptions(int argc, char **argv, ONScripter &ons, bool &hasArchivePath)
 {
     argv++;
     while( argc > 1 ){
@@ -298,13 +298,13 @@ static void parseOptions(int argc, char **argv, ONScripterLabel &ons, bool &hasA
                 ons.setNoMovieUpscale();
             }
             else if ( !strcmp( argv[0]+1, "-detect-png-nscmask" ) ){
-                ons.setMaskType( ONScripterLabel::PNG_MASK_AUTODETECT );
+                ons.setMaskType( ONScripter::PNG_MASK_AUTODETECT );
             }
             else if ( !strcmp( argv[0]+1, "-force-png-alpha" ) ){
-                ons.setMaskType( ONScripterLabel::PNG_MASK_USE_ALPHA );
+                ons.setMaskType( ONScripter::PNG_MASK_USE_ALPHA );
             }
             else if ( !strcmp( argv[0]+1, "-force-png-nscmask" ) ){
-                ons.setMaskType( ONScripterLabel::PNG_MASK_USE_NSCRIPTER );
+                ons.setMaskType( ONScripter::PNG_MASK_USE_NSCRIPTER );
             }
             else{
                 char errstr[256];
@@ -326,7 +326,7 @@ static void parseOptions(int argc, char **argv, ONScripterLabel &ons, bool &hasA
     }
 }
 
-static bool parseOptionFile(const char *filename, ONScripterLabel &ons, bool &hasArchivePath)
+static bool parseOptionFile(const char *filename, ONScripter &ons, bool &hasArchivePath)
 {
     int argc;
     char **argv = NULL;
@@ -411,7 +411,7 @@ static bool parseOptionFile(const char *filename, ONScripterLabel &ons, bool &ha
 
 int main( int argc, char **argv )
 {
-    ONScripterLabel ons;
+    ONScripter ons;
 
 #ifdef MACOSX
     //Check for application bundle on Mac OS X

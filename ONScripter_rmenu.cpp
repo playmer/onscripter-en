@@ -33,7 +33,7 @@
 // Modified by Mion, November 2009, to update from
 // Ogapee's 20091115 release source code.
 
-#include "ONScripterLabel.h"
+#include "ONScripter.h"
 
 static const char* messages[][8] = {
     { "`%s%s    Date %s/%s    Time %s:%s",
@@ -54,7 +54,7 @@ static const char* messages[][8] = {
       "‚¢‚¢‚¦" }
 };
 
-const char* ONScripterLabel::getMessageString( MessageId which )
+const char* ONScripter::getMessageString( MessageId which )
 {
     if (script_h.system_menu_script != ScriptHandler::JAPANESE_SCRIPT)
         return messages[0][which];
@@ -62,7 +62,7 @@ const char* ONScripterLabel::getMessageString( MessageId which )
         return messages[1][which];
 }
 
-void ONScripterLabel::enterSystemCall()
+void ONScripter::enterSystemCall()
 {
     shelter_button_link = root_button_link.next;
     root_button_link.next = NULL;
@@ -81,7 +81,7 @@ void ONScripterLabel::enterSystemCall()
     draw_cursor_flag = false;
 }
 
-void ONScripterLabel::leaveSystemCall( bool restore_flag )
+void ONScripter::leaveSystemCall( bool restore_flag )
 {
     bool tmp = txtbtn_show;
     txtbtn_show = false;
@@ -128,7 +128,7 @@ void ONScripterLabel::leaveSystemCall( bool restore_flag )
     system_menu_mode = SYSTEM_NULL;
 }
 
-bool ONScripterLabel::executeSystemCall()
+bool ONScripter::executeSystemCall()
 {
     enterSystemCall();
 
@@ -170,7 +170,7 @@ bool ONScripterLabel::executeSystemCall()
     return false;
 }
 
-void ONScripterLabel::executeSystemMenu()
+void ONScripter::executeSystemMenu()
 {
     current_font = &menu_font;
 
@@ -231,13 +231,13 @@ void ONScripterLabel::executeSystemMenu()
     }
 }
 
-void ONScripterLabel::executeSystemSkip()
+void ONScripter::executeSystemSkip()
 {
     skip_mode |= SKIP_NORMAL;
     leaveSystemCall();
 }
 
-void ONScripterLabel::executeSystemAutomode()
+void ONScripter::executeSystemAutomode()
 {
     automode_flag = true;
     skip_mode &= ~SKIP_NORMAL;
@@ -245,7 +245,7 @@ void ONScripterLabel::executeSystemAutomode()
     leaveSystemCall();
 }
 
-bool ONScripterLabel::executeSystemReset()
+bool ONScripter::executeSystemReset()
 {
     if ( executeSystemYesNo( SYSTEM_RESET ) ){
         resetCommand();
@@ -259,7 +259,7 @@ bool ONScripterLabel::executeSystemReset()
     return false;
 }
 
-void ONScripterLabel::executeSystemEnd()
+void ONScripter::executeSystemEnd()
 {
     if ( executeSystemYesNo( SYSTEM_END ) )
         endCommand();
@@ -267,7 +267,7 @@ void ONScripterLabel::executeSystemEnd()
         leaveSystemCall();
 }
 
-void ONScripterLabel::executeWindowErase()
+void ONScripter::executeWindowErase()
 {
     if (windowchip_sprite_no >= 0)
         sprite_info[windowchip_sprite_no].visible = false;
@@ -297,7 +297,7 @@ void ONScripterLabel::executeWindowErase()
     leaveSystemCall();
 }
 
-bool ONScripterLabel::executeSystemLoad()
+bool ONScripter::executeSystemLoad()
 {
     current_font = &menu_font;
 
@@ -412,7 +412,7 @@ bool ONScripterLabel::executeSystemLoad()
     return false;
 }
 
-void ONScripterLabel::executeSystemSave()
+void ONScripter::executeSystemSave()
 {
     current_font = &menu_font;
 
@@ -494,7 +494,7 @@ void ONScripterLabel::executeSystemSave()
     leaveSystemCall();
 }
 
-bool ONScripterLabel::executeSystemYesNo( int caller, int file_no )
+bool ONScripter::executeSystemYesNo( int caller, int file_no )
 {
     current_font = &menu_font;
 
@@ -584,7 +584,7 @@ bool ONScripterLabel::executeSystemYesNo( int caller, int file_no )
     }
 }
 
-void ONScripterLabel::setupLookbackButton()
+void ONScripter::setupLookbackButton()
 {
     deleteButtonLink();
 
@@ -661,7 +661,7 @@ void ONScripterLabel::setupLookbackButton()
     }
 }
 
-void ONScripterLabel::executeSystemLookback()
+void ONScripter::executeSystemLookback()
 {
     uchar3 color;
 

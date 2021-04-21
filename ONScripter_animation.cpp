@@ -27,9 +27,9 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "ONScripterLabel.h"
+#include "ONScripter.h"
 
-int ONScripterLabel::proceedAnimation()
+int ONScripter::proceedAnimation()
 {
     int i, minimum_duration = -1;
     AnimationInfo *anim;
@@ -74,7 +74,7 @@ int ONScripterLabel::proceedAnimation()
     return minimum_duration;
 }
 
-int ONScripterLabel::proceedCursorAnimation()
+int ONScripter::proceedCursorAnimation()
 {
     int minimum_duration = -1;
     AnimationInfo *anim = NULL;
@@ -102,7 +102,7 @@ int ONScripterLabel::proceedCursorAnimation()
     return minimum_duration;
 }
 
-int ONScripterLabel::estimateNextDuration( AnimationInfo *anim, SDL_Rect &rect, int minimum )
+int ONScripter::estimateNextDuration( AnimationInfo *anim, SDL_Rect &rect, int minimum )
 {
     if ( anim->remaining_time == 0 ){
 
@@ -141,7 +141,7 @@ int ONScripterLabel::estimateNextDuration( AnimationInfo *anim, SDL_Rect &rect, 
     return minimum;
 }
 
-void ONScripterLabel::resetRemainingTime( int t )
+void ONScripter::resetRemainingTime( int t )
 {
     int i;
     AnimationInfo *anim;
@@ -170,7 +170,7 @@ void ONScripterLabel::resetRemainingTime( int t )
 #endif
 }
 
-void ONScripterLabel::resetCursorTime( int t )
+void ONScripter::resetCursorTime( int t )
 {
     AnimationInfo *anim = NULL;
 
@@ -191,10 +191,10 @@ void ONScripterLabel::resetCursorTime( int t )
 }
 
 #ifdef RCA_SCALE
-void ONScripterLabel::setupAnimationInfo( AnimationInfo *anim, Fontinfo *info,
+void ONScripter::setupAnimationInfo( AnimationInfo *anim, Fontinfo *info,
                                           float stretch_x, float stretch_y )
 #else
-void ONScripterLabel::setupAnimationInfo( AnimationInfo *anim, Fontinfo *info )
+void ONScripter::setupAnimationInfo( AnimationInfo *anim, Fontinfo *info )
 #endif
 {
     if (anim->image_surface && !anim->stale_image) return;
@@ -305,7 +305,7 @@ void ONScripterLabel::setupAnimationInfo( AnimationInfo *anim, Fontinfo *info )
     anim->stale_image = false;
 }
 
-bool ONScripterLabel::sameImageTag(const AnimationInfo &anim1, const AnimationInfo &anim2)
+bool ONScripter::sameImageTag(const AnimationInfo &anim1, const AnimationInfo &anim2)
 // returns true if the AnimationInfo tags would create identical images
 {
     if (&anim1 == &anim2) return true;
@@ -337,7 +337,7 @@ bool ONScripterLabel::sameImageTag(const AnimationInfo &anim1, const AnimationIn
     return true;
 }
 
-void ONScripterLabel::parseTaggedString( AnimationInfo *anim, bool is_mask )
+void ONScripter::parseTaggedString( AnimationInfo *anim, bool is_mask )
 {
     if (anim->image_name == NULL) return;
 
@@ -461,7 +461,7 @@ void ONScripterLabel::parseTaggedString( AnimationInfo *anim, bool is_mask )
         anim->num_of_cells = getNumberFromBuffer( (const char**)&buffer );
         buffer++;
         if ( anim->num_of_cells == 0 ){
-            fprintf( stderr, "ONScripterLabel::parseTaggedString  The number of cells is 0\n");
+            fprintf( stderr, "ONScripter::parseTaggedString  The number of cells is 0\n");
             return;
         }
 
@@ -503,7 +503,7 @@ void ONScripterLabel::parseTaggedString( AnimationInfo *anim, bool is_mask )
                           !sameImageTag(*anim,acopy) );
 }
 
-void ONScripterLabel::drawTaggedSurface( SDL_Surface *dst_surface, AnimationInfo *anim, SDL_Rect &clip )
+void ONScripter::drawTaggedSurface( SDL_Surface *dst_surface, AnimationInfo *anim, SDL_Rect &clip )
 {
 #ifndef NO_LAYER_EFFECTS
     if ( anim->trans_mode != AnimationInfo::TRANS_LAYER ) {
@@ -534,7 +534,7 @@ void ONScripterLabel::drawTaggedSurface( SDL_Surface *dst_surface, AnimationInfo
 #endif
 }
 
-void ONScripterLabel::stopCursorAnimation( int click )
+void ONScripter::stopCursorAnimation( int click )
 {
     int no;
 

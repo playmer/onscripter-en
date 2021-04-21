@@ -34,7 +34,7 @@
 // Modified by Mion, November 2009, to update from
 // Ogapee's 20091115 release source code.
 
-#include "ONScripterLabel.h"
+#include "ONScripter.h"
 
 extern unsigned short convSJIS2UTF16( unsigned short in );
 
@@ -65,7 +65,7 @@ static inline bool isNonPrinting(const char *text)
              ((text[0] == (char)0x81) && (text[1] == (char)0x40)) );
 }
 
-SDL_Surface *ONScripterLabel::renderGlyph(TTF_Font *font, Uint16 text)
+SDL_Surface *ONScripter::renderGlyph(TTF_Font *font, Uint16 text)
 {
     GlyphCache *gc = root_glyph_cache;
     GlyphCache *pre_gc = gc;
@@ -102,7 +102,7 @@ SDL_Surface *ONScripterLabel::renderGlyph(TTF_Font *font, Uint16 text)
     return gc->surface;
 }
 
-void ONScripterLabel::drawGlyph( SDL_Surface *dst_surface, Fontinfo *info, SDL_Color &color, char* text, int xy[2], bool shadow_flag, AnimationInfo *cache_info, SDL_Rect *clip, SDL_Rect &dst_rect )
+void ONScripter::drawGlyph( SDL_Surface *dst_surface, Fontinfo *info, SDL_Color &color, char* text, int xy[2], bool shadow_flag, AnimationInfo *cache_info, SDL_Rect *clip, SDL_Rect &dst_rect )
 {
     //in case of font size 0
     if ((info->font_size_xy[0] == 0) || (info->font_size_xy[1] == 0))
@@ -180,7 +180,7 @@ void ONScripterLabel::drawGlyph( SDL_Surface *dst_surface, Fontinfo *info, SDL_C
         alphaBlendText( dst_surface, dst_rect, tmp_surface, color, clip, rotate_flag );
 }
 
-void ONScripterLabel::drawChar( char* text, Fontinfo *info, bool flush_flag,
+void ONScripter::drawChar( char* text, Fontinfo *info, bool flush_flag,
                                 bool lookback_flag, SDL_Surface *surface,
                                 AnimationInfo *cache_info, int abs_offset, SDL_Rect *clip )
 {
@@ -267,7 +267,7 @@ void ONScripterLabel::drawChar( char* text, Fontinfo *info, bool flush_flag,
     }
 }
 
-void ONScripterLabel::drawString( const char *str, uchar3 color, Fontinfo *info,
+void ONScripter::drawString( const char *str, uchar3 color, Fontinfo *info,
                                   bool flush_flag, SDL_Surface *surface, 
                                   int abs_offset, SDL_Rect *rect,
                                   AnimationInfo *cache_info, bool skip_whitespace_flag )
@@ -419,7 +419,7 @@ void ONScripterLabel::drawString( const char *str, uchar3 color, Fontinfo *info,
     if ( rect ) *rect = clipped_rect;
 }
 
-void ONScripterLabel::restoreTextBuffer(SDL_Surface *surface)
+void ONScripter::restoreTextBuffer(SDL_Surface *surface)
 {
     text_info.fill( 0, 0, 0, 0 );
 
@@ -503,7 +503,7 @@ void ONScripterLabel::restoreTextBuffer(SDL_Surface *surface)
     }
 }
 
-void ONScripterLabel::enterTextDisplayMode(bool text_flag)
+void ONScripter::enterTextDisplayMode(bool text_flag)
 {
     if (line_enter_status <= 1 && saveon_flag && internal_saveon_flag && text_flag){
         saveSaveFile( -1 );
@@ -524,7 +524,7 @@ void ONScripterLabel::enterTextDisplayMode(bool text_flag)
     }
 }
 
-void ONScripterLabel::leaveTextDisplayMode(bool force_leave_flag)
+void ONScripter::leaveTextDisplayMode(bool force_leave_flag)
 {
     //ons-en feature: when in certain skip modes, don't actually leave
     //text display mode unless forced to (but say you did)
@@ -549,7 +549,7 @@ void ONScripterLabel::leaveTextDisplayMode(bool force_leave_flag)
     display_mode |= DISPLAY_MODE_UPDATED;
 }
 
-bool ONScripterLabel::doClickEnd()
+bool ONScripter::doClickEnd()
 {
     bool ret = false;
 
@@ -583,7 +583,7 @@ bool ONScripterLabel::doClickEnd()
     return ret;
 }
 
-bool ONScripterLabel::clickWait()
+bool ONScripter::clickWait()
 {
     int tmp_skip = skip_mode;
     skip_mode &= ~(SKIP_TO_WAIT | SKIP_TO_EOL);
@@ -638,7 +638,7 @@ bool ONScripterLabel::clickWait()
     return true;
 }
 
-bool ONScripterLabel::clickNewPage()
+bool ONScripter::clickNewPage()
 {
 //    int tmp_skip = skip_mode;
     skip_mode &= ~(SKIP_TO_WAIT | SKIP_TO_EOL);
@@ -679,7 +679,7 @@ bool ONScripterLabel::clickNewPage()
     return true;
 }
 
-void ONScripterLabel::startRuby(char *buf, Fontinfo &info)
+void ONScripter::startRuby(char *buf, Fontinfo &info)
 {
     ruby_struct.stage = RubyStruct::BODY;
     ruby_font = info;
@@ -717,7 +717,7 @@ void ONScripterLabel::startRuby(char *buf, Fontinfo &info)
     ruby_struct.margin = ruby_font.initRuby(info, ruby_struct.body_count/2, ruby_struct.ruby_count/2);
 }
 
-void ONScripterLabel::endRuby(bool flush_flag, bool lookback_flag, SDL_Surface *surface, AnimationInfo *cache_info)
+void ONScripter::endRuby(bool flush_flag, bool lookback_flag, SDL_Surface *surface, AnimationInfo *cache_info)
 {
     char out_text[3]= {'\0', '\0', '\0'};
     if ( rubyon_flag ){
@@ -740,7 +740,7 @@ void ONScripterLabel::endRuby(bool flush_flag, bool lookback_flag, SDL_Surface *
     ruby_struct.stage = RubyStruct::NONE;
 }
 
-int ONScripterLabel::textCommand()
+int ONScripter::textCommand()
 {
     if (line_enter_status <= 1 && saveon_flag && internal_saveon_flag){
         saveSaveFile( -1 );
@@ -787,7 +787,7 @@ int ONScripterLabel::textCommand()
     return RET_CONTINUE;
 }
 
-void ONScripterLabel::processEOT()
+void ONScripter::processEOT()
 {
     skip_mode &= ~SKIP_TO_WAIT;
     if (skip_mode & SKIP_TO_EOL){
@@ -802,7 +802,7 @@ void ONScripterLabel::processEOT()
     line_enter_status = 0;
 }
 
-bool ONScripterLabel::processText()
+bool ONScripter::processText()
 //Mion: extensively modified the text processing
 {
     //printf("processText %s %d %d %d\n", script_h.getStringBuffer() + string_buffer_offset, string_buffer_offset, event_mode, line_enter_status);
@@ -1145,7 +1145,7 @@ bool ONScripterLabel::processText()
     return false;
 }
 
-char ONScripterLabel::doLineBreak(bool isHardBreak)
+char ONScripter::doLineBreak(bool isHardBreak)
 // Mion: for text processing
 {
     sentence_font.newLine();
@@ -1169,7 +1169,7 @@ char ONScripterLabel::doLineBreak(bool isHardBreak)
     return ch;
 }
 
-int ONScripterLabel::isTextCommand(const char *buf)
+int ONScripter::isTextCommand(const char *buf)
 // Mion: for text processing
 // if buf starts with a text command, return the # of chars in it
 // if it's a ruby command, return -(# of chars)
@@ -1252,7 +1252,7 @@ int ONScripterLabel::isTextCommand(const char *buf)
         return 0;
 }
 
-void ONScripterLabel::processRuby(unsigned int i, int cmd)
+void ONScripter::processRuby(unsigned int i, int cmd)
 {
     char *string_buffer = script_h.getStringBuffer();
     unsigned int j, k;
@@ -1269,7 +1269,7 @@ void ONScripterLabel::processRuby(unsigned int i, int cmd)
     }
 }
 
-bool ONScripterLabel::processBreaks(bool cont_line, LineBreakType style)
+bool ONScripter::processBreaks(bool cont_line, LineBreakType style)
 // Mion: for text processing
 // cont_line: is this a continuation of a prior line (using "/")?
 // style: SPACEBREAK or KINSOKU linebreak rules
@@ -1415,7 +1415,7 @@ bool ONScripterLabel::processBreaks(bool cont_line, LineBreakType style)
     }
 }
 
-int ONScripterLabel::findNextBreak(int offset, int &len)
+int ONScripter::findNextBreak(int offset, int &len)
 // Mion: for text processing
 {
     // return offset of first break_before after/including current offset;
@@ -1482,7 +1482,7 @@ int ONScripterLabel::findNextBreak(int offset, int &len)
     return i;
 }
 
-void ONScripterLabel::terminateTextButton()
+void ONScripter::terminateTextButton()
 //Mion: use to destroy improperly terminated text button
 {
     TextButtonInfoLink *tmp = text_button_info.next;
@@ -1493,7 +1493,7 @@ void ONScripterLabel::terminateTextButton()
     textbtnColorChange();
 }
 
-void ONScripterLabel::textbtnColorChange()
+void ONScripter::textbtnColorChange()
 //Mion: swap linkcolor[0] with sentence_font color, make color change
 {
     uchar3 tmpcolor;

@@ -36,7 +36,7 @@
 // Ogapee's 20091115 release source code.
 
 #include "ScriptHandler.h"
-#include "ONScripterLabel.h" //so this can call doErrorBox
+#include "ONScripter.h" //so this can call doErrorBox
 #include <sys/stat.h>
 #include <sys/types.h>
 #ifdef WIN32

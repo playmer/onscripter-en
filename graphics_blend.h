@@ -29,7 +29,7 @@
 #include <SDL.h>
 #include "graphics_common.h"
 
-// Incorporates code originally from AnimationInfo.cpp & ONScripterLabel_image.cpp,
+// Incorporates code originally from AnimationInfo.cpp & ONScripter_image.cpp,
 // copyright (c) 2001-2011 Ogapee
 #ifdef BPP16
 
@@ -105,7 +105,7 @@
               (monocro_color_lut[c][2] >> BLOSS); \
 }
 
-/* Used in ONScripterLabel_image */
+/* Used in ONScripter_image */
 
 #define BLEND_TEXT(){\
     Uint32 mask2 = *src_buffer >> 3; \
@@ -204,7 +204,7 @@
               monocro_color_lut[c][2]; \
 }
 
-/* Used in ONScripterLabel_image */
+/* Used in ONScripter_image */
 
 #define BLEND_TEXT(){\
     Uint32 mask2 = *src_buffer; \

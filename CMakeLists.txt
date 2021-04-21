@@ -67,20 +67,20 @@ PRIVATE
     #nscriptdecode.cpp
     onscripter.cpp
     ONScripterLabel.cpp
-    ONScripterLabel.h
-    ONScripterLabel_animation.cpp
-    ONScripterLabel_command.cpp
-    ONScripterLabel_effect.cpp
-    ONScripterLabel_effect_breakup.cpp
-    ONScripterLabel_effect_cascade.cpp
-    ONScripterLabel_effect_trig.cpp
-    ONScripterLabel_event.cpp
-    ONScripterLabel_file.cpp
-    ONScripterLabel_file2.cpp
-    ONScripterLabel_image.cpp
-    ONScripterLabel_rmenu.cpp
-    ONScripterLabel_sound.cpp
-    ONScripterLabel_text.cpp
+    ONScripter.h
+    ONScripter_animation.cpp
+    ONScripter_command.cpp
+    ONScripter_effect.cpp
+    ONScripter_effect_breakup.cpp
+    ONScripter_effect_cascade.cpp
+    ONScripter_effect_trig.cpp
+    ONScripter_event.cpp
+    ONScripter_file.cpp
+    ONScripter_file2.cpp
+    ONScripter_image.cpp
+    ONScripter_rmenu.cpp
+    ONScripter_sound.cpp
+    ONScripter_text.cpp
     resize_image.cpp
     resize_image.h
     resources.h

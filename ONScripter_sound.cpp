@@ -35,7 +35,7 @@
 // Modified by Mion, November 2009, to update from
 // Ogapee's 20091115 release source code.
 
-#include "ONScripterLabel.h"
+#include "ONScripter.h"
 #include <new>
 #include <filesystem>
 
@@ -47,27 +47,6 @@
 #include "AVIWrapper.h"
 #endif
 
-struct WAVE_HEADER{
-    char chunk_riff[4];
-    char riff_length[4];
-    // format chunk
-    char fmt_id[8];
-    char fmt_size[4];
-    char data_fmt[2];
-    char channels[2];
-    char frequency[4];
-    char byte_size[4];
-    char sample_byte_size[2];
-    char sample_bit_size[2];
-} header;
-struct WAVE_DATA_HEADER{
-    // data chunk
-    char chunk_id[4];
-    char data_length[4];
-} data_header;
-static void setupWaveHeader( unsigned char *buffer, int channels, int bits,
-                             unsigned long rate, unsigned long data_length,
-                             unsigned int extra_bytes=0, unsigned char *extra_ptr=NULL );
 
 static inline void clearTimer(SDL_TimerID &timer_id)
 {
@@ -85,9 +64,6 @@ extern "C"{
     extern Uint32 SDLCALL seqmusicSDLCallback( Uint32 interval, void *param );
 #endif
 }
-extern void seqmusicCallback( int sig );
-extern void musicCallback( int sig );
-extern SDL_TimerID timer_cdaudio_id;
 extern SDL_TimerID timer_silentmovie_id;
 
 #if defined(MACOSX) //insani
@@ -97,20 +73,6 @@ extern SDL_TimerID timer_seqmusic_id;
 #define TMP_SEQMUSIC_FILE "tmp.mus"
 #define TMP_MUSIC_FILE "tmp.mus"
 
-#define SWAP_SHORT_BYTES(sptr){          \
-            Uint8 *bptr = (Uint8 *)sptr; \
-            Uint8 tmpb = *bptr;          \
-            *bptr = *(bptr+1);           \
-            *(bptr+1) = tmpb;            \
-        }
-
-//WMA header format
-#define IS_ASF_HDR(buf)                           \
-         ((buf[0] == 0x30) && (buf[1] == 0x26) && \
-          (buf[2] == 0xb2) && (buf[3] == 0x75) && \
-          (buf[4] == 0x8e) && (buf[5] == 0x66) && \
-          (buf[6] == 0xcf) && (buf[7] == 0x11))
-
 //AVI header format
 #define IS_AVI_HDR(buf)                         \
          ((buf[0] == 'R') && (buf[1] == 'I') && \
@@ -118,96 +80,7 @@ extern SDL_TimerID timer_seqmusic_id;
           (buf[8] == 'A') && (buf[9] == 'V') && \
           (buf[10] == 'I'))
 
-//MIDI header format
-#define IS_MIDI_HDR(buf)                         \
-         ((buf[0] == 'M') && (buf[1] == 'T') && \
-          (buf[2] == 'h') && (buf[3] == 'd') && \
-          (buf[4] == 0)  && (buf[5] == 0) && \
-          (buf[6] == 0)  && (buf[7] == 6))
-
-extern long decodeOggVorbis(ONScripterLabel *scripterLabel, Uint8 *buf_dst, long len, bool do_rate_conversion)
-{
-    //SDL_LockMutex(scripterLabel->mMusicMutex);
-    int current_section;
-    long total_len = 0;
-
-    OVInfo *ovi = scripterLabel->music_struct.ovi;
-    char *buf = (char*)buf_dst;
-    if (do_rate_conversion && ovi->cvt.needed){
-        len = len * ovi->mult1 / ovi->mult2;
-        if (ovi->cvt_len < len*ovi->cvt.len_mult){
-            if (ovi->cvt.buf) delete[] ovi->cvt.buf;
-            ovi->cvt.buf = new Uint8[len*ovi->cvt.len_mult];
-            ovi->cvt_len = len*ovi->cvt.len_mult;
-        }
-        buf = (char*)ovi->cvt.buf;
-    }
-
-#ifdef USE_OGG_VORBIS
-    while(1){
-#ifdef INTEGER_OGG_VORBIS
-        long src_len = ov_read( &ovi->ovf, buf, len, &current_section);
-#else
-        long src_len = ov_read( &ovi->ovf, buf, len, 0, 2, 1, &current_section);
-#endif
-        if (src_len <= 0) break;
-
-        int vol = scripterLabel->music_struct.is_mute ? 0 : scripterLabel->music_struct.volume;
-        if (scripterLabel->music_struct.voice_sample && *(scripterLabel->music_struct.voice_sample))
-            vol /= 2;
-        long dst_len = src_len;
-        if (do_rate_conversion && ovi->cvt.needed){
-            ovi->cvt.len = src_len;
-            if (-1 == SDL_ConvertAudio(&ovi->cvt))
-            {
-              //SDL_UnlockMutex(scripterLabel->mMusicMutex);
-              return 0;
-            }
-            memcpy(buf_dst, ovi->cvt.buf, ovi->cvt.len_cvt);
-            dst_len = ovi->cvt.len_cvt;
-
-            if (vol != DEFAULT_VOLUME){
-                // volume change under SOUND_OGG_STREAMING
-                for (int i=0 ; i<dst_len ; i+=2){
-                    short a = *(short*)(buf_dst+i);
-                    a = a*vol/100;
-                    *(short*)(buf_dst+i) = a;
-                }
-            }
-            buf_dst += ovi->cvt.len_cvt;
-        }
-        else{
-            if (do_rate_conversion && vol != DEFAULT_VOLUME){ 
-                // volume change under SOUND_OGG_STREAMING
-                for (int i=0 ; i<dst_len ; i+=2){
-                    if constexpr (SDL_BYTEORDER == SDL_BIG_ENDIAN){
-                        SWAP_SHORT_BYTES( ((short*)(buf_dst+i)) )
-                    }
-
-                    short a = *(short*)(buf_dst+i);
-                    a = a*vol/100;
-                    *(short*)(buf_dst+i) = a;
-
-                    if constexpr (SDL_BYTEORDER == SDL_BIG_ENDIAN) {
-                        SWAP_SHORT_BYTES( ((short*)(buf_dst+i)) )
-                    }
-                }
-            }
-            buf += dst_len;
-            buf_dst += dst_len;
-        }
-
-        total_len += dst_len;
-        if (src_len == len) break;
-        len -= src_len;
-    }
-#endif
-    
-    //SDL_UnlockMutex(scripterLabel->mMusicMutex);
-    return total_len;
-}
-
-bool PlayOnSoundEngine(ONScripterLabel::SoundEngine& engine, const char *filename, bool loop, int channel, unsigned char* buffer = nullptr, size_t length = 0)
+bool PlayOnSoundEngine(ONScripter::SoundEngine& engine, const char *filename, bool loop, int channel, unsigned char* buffer = nullptr, size_t length = 0)
 {
   std::filesystem::path path = filename;
 
@@ -261,7 +134,7 @@ bool PlayOnSoundEngine(ONScripterLabel::SoundEngine& engine, const char *filenam
   return true;
 }
 
-int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag, int channel)
+int ONScripter::playSound(const char *filename, int format, bool loop_flag, int channel)
 {
     if ( !audio_open_flag ) return SOUND_NONE;
 
@@ -319,7 +192,7 @@ int ONScripterLabel::playSound(const char *filename, int format, bool loop_flag,
     return SOUND_OTHER;
 }
 
-void ONScripterLabel::playCDAudio()
+void ONScripter::playCDAudio()
 {
     if (!audio_open_flag) return;
 
@@ -346,7 +219,7 @@ void ONScripterLabel::playCDAudio()
     }
 }
 
-int ONScripterLabel::playExternalMusic(bool loop_flag)
+int ONScripter::playExternalMusic(bool loop_flag)
 {
     // Yeah we are absolutely not doing this the way they originally did,
     // that's a _wild_ suggestion.
@@ -367,7 +240,7 @@ int ONScripterLabel::playExternalMusic(bool loop_flag)
     return 0;
 }
 
-int ONScripterLabel::playSequencedMusic(bool loop_flag)
+int ONScripter::playSequencedMusic(bool loop_flag)
 {
     // Yeah we are absolutely not doing this the way they originally did,
     // that's a _wild_ suggestion.
@@ -391,7 +264,7 @@ int ONScripterLabel::playSequencedMusic(bool loop_flag)
     return 0;
 }
 
-int ONScripterLabel::playingMusic()
+int ONScripter::playingMusic()
 {
     if (audio_open_flag && 
         ( (Mix_GetMusicHookData() != NULL) ||
@@ -402,7 +275,7 @@ int ONScripterLabel::playingMusic()
         return 0;
 }
 
-int ONScripterLabel::setCurMusicVolume( int volume )
+int ONScripter::setCurMusicVolume( int volume )
 {
     if (!audio_open_flag) return 0;
     
@@ -410,7 +283,7 @@ int ONScripterLabel::setCurMusicVolume( int volume )
     return 0;
 }
 
-int ONScripterLabel::setVolumeMute( bool do_mute )
+int ONScripter::setVolumeMute( bool do_mute )
 {
     if (!audio_open_flag) return 0;
     
@@ -425,12 +298,12 @@ int ONScripterLabel::setVolumeMute( bool do_mute )
     return 0;
 }
 
-void ONScripterLabel::SMpegDisplayCallback(void* data, SMPEG_Frame* frame)
+void ONScripter::SMpegDisplayCallback(void* data, SMPEG_Frame* frame)
 {
 
 }
 
-int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_pos, int xpos, int ypos, int width, int height )
+int ONScripter::playMPEG( const char *filename, bool async_flag, bool use_pos, int xpos, int ypos, int width, int height )
 {
     int ret = 0;
 #ifndef MP3_MAD
@@ -510,7 +383,7 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
             different_spec = false;
         }
         SMPEG_enablevideo( mpeg_sample, 1 );
-        SMPEG_setdisplay(mpeg_sample, &ONScripterLabel::SMpegDisplayCallback, this, mSmpegMutex);
+        SMPEG_setdisplay(mpeg_sample, &ONScripter::SMpegDisplayCallback, this, mSmpegMutex);
         //SMPEG_setdisplay( mpeg_sample, screen_surface, NULL, NULL );
         //if (use_pos) {
         //    SMPEG_scaleXY( mpeg_sample, width, height );
@@ -615,7 +488,7 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
                                 screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, true );
                             }
                             
-                            SMPEG_setdisplay(mpeg_sample, &ONScripterLabel::SMpegDisplayCallback, this, mSmpegMutex);
+                            SMPEG_setdisplay(mpeg_sample, &ONScripter::SMpegDisplayCallback, this, mSmpegMutex);
                             SMPEG_play( mpeg_sample );
                         }
                         fullscreen_mode = !fullscreen_mode;
@@ -656,7 +529,7 @@ int ONScripterLabel::playMPEG( const char *filename, bool async_flag, bool use_p
     return ret;
 }
 
-int ONScripterLabel::playAVI( const char *filename, bool click_flag )
+int ONScripter::playAVI( const char *filename, bool click_flag )
 {
 #ifdef USE_AVIFILE
     char *absolute_filename = new char[ strlen(archive_path) + strlen(filename) + 1 ];
@@ -687,7 +560,7 @@ int ONScripterLabel::playAVI( const char *filename, bool click_flag )
     return 0;
 }
 
-void ONScripterLabel::stopMovie(SMPEG *mpeg)
+void ONScripter::stopMovie(SMPEG *mpeg)
 {
     if (mpeg) {
         SMPEG_Info info;
@@ -707,7 +580,7 @@ void ONScripterLabel::stopMovie(SMPEG *mpeg)
     surround_rects = NULL;
 }
 
-void ONScripterLabel::stopBGM( bool continue_flag )
+void ONScripter::stopBGM( bool continue_flag )
 {
     printf("Stopping channel: %d\n", MIX_BGM_CHANNEL);
     auto channelIt = mSoundEngine.mHandles.find(MIX_BGM_CHANNEL);
@@ -720,7 +593,7 @@ void ONScripterLabel::stopBGM( bool continue_flag )
     if ( !continue_flag ) current_cd_track = -1;
 }
 
-void ONScripterLabel::stopDWAVE( int channel )
+void ONScripter::stopDWAVE( int channel )
 {
     if (!audio_open_flag) return;
 
@@ -743,7 +616,7 @@ void ONScripterLabel::stopDWAVE( int channel )
         setCurMusicVolume( music_volume );
 }
 
-void ONScripterLabel::stopAllDWAVE()
+void ONScripter::stopAllDWAVE()
 {
     if (!audio_open_flag) return;
 
@@ -764,7 +637,7 @@ void ONScripterLabel::stopAllDWAVE()
         setCurMusicVolume( music_volume );
 }
 
-void ONScripterLabel::playClickVoice()
+void ONScripter::playClickVoice()
 {
     if      ( clickstr_state == CLICK_NEWPAGE ){
         if ( clickvoice_file_name[CLICKVOICE_NEWPAGE] )
@@ -778,160 +651,3 @@ void ONScripterLabel::playClickVoice()
     }
 }
 
-void setupWaveHeader( unsigned char *buffer, int channels, int bits,
-                      unsigned long rate, unsigned long data_length,
-                      unsigned int extra_bytes, unsigned char *extra_ptr )
-{
-    memcpy( header.chunk_riff, "RIFF", 4 );
-    unsigned long riff_length = sizeof(WAVE_HEADER) + sizeof(WAVE_DATA_HEADER) +
-                                data_length + extra_bytes - 8;
-    header.riff_length[0] = riff_length & 0xff;
-    header.riff_length[1] = (riff_length >> 8) & 0xff;
-    header.riff_length[2] = (riff_length >> 16) & 0xff;
-    header.riff_length[3] = (riff_length >> 24) & 0xff;
-    memcpy( header.fmt_id, "WAVEfmt ", 8 );
-    header.fmt_size[0] = 0x10 + extra_bytes;
-    header.fmt_size[1] = header.fmt_size[2] = header.fmt_size[3] = 0;
-    header.data_fmt[0] = 1; header.data_fmt[1] = 0; // PCM format
-    header.channels[0] = channels; header.channels[1] = 0;
-    header.frequency[0] = rate & 0xff;
-    header.frequency[1] = (rate >> 8) & 0xff;
-    header.frequency[2] = (rate >> 16) & 0xff;
-    header.frequency[3] = (rate >> 24) & 0xff;
-
-    int sample_byte_size = channels * bits / 8;
-    unsigned long byte_size = sample_byte_size * rate;
-    header.byte_size[0] = byte_size & 0xff;
-    header.byte_size[1] = (byte_size >> 8) & 0xff;
-    header.byte_size[2] = (byte_size >> 16) & 0xff;
-    header.byte_size[3] = (byte_size >> 24) & 0xff;
-    header.sample_byte_size[0] = sample_byte_size;
-    header.sample_byte_size[1] = 0;
-    header.sample_bit_size[0] = bits;
-    header.sample_bit_size[1] = 0;
-
-    memcpy( data_header.chunk_id, "data", 4 );
-    data_header.data_length[0] = (char)(data_length & 0xff);
-    data_header.data_length[1] = (char)((data_length >> 8) & 0xff);
-    data_header.data_length[2] = (char)((data_length >> 16) & 0xff);
-    data_header.data_length[3] = (char)((data_length >> 24) & 0xff);
-
-    memcpy( buffer, &header, sizeof(header) );
-    if (extra_bytes > 0) {
-        if (extra_ptr != NULL)
-            memcpy( buffer+sizeof(header), extra_ptr, extra_bytes );
-        else
-            memset( buffer+sizeof(header), 0, extra_bytes );
-    }
-    memcpy( buffer+sizeof(header)+extra_bytes, &data_header, sizeof(data_header) );
-}
-#ifdef USE_OGG_VORBIS
-static size_t oc_read_func(void *ptr, size_t size, size_t nmemb, void *datasource)
-{
-    OVInfo *ogg_vorbis_info = (OVInfo*)datasource;
-
-    size_t len = size*nmemb;
-    if ((size_t)ogg_vorbis_info->pos+len > (size_t)ogg_vorbis_info->length) 
-        len = (size_t)(ogg_vorbis_info->length - ogg_vorbis_info->pos);
-    memcpy(ptr, ogg_vorbis_info->buf+ogg_vorbis_info->pos, len);
-    ogg_vorbis_info->pos += len;
-
-    return len;
-}
-
-static int oc_seek_func(void *datasource, ogg_int64_t offset, int whence)
-{
-    OVInfo *ogg_vorbis_info = (OVInfo*)datasource;
-
-    ogg_int64_t pos = 0;
-    if (whence == 0)
-        pos = offset;
-    else if (whence == 1)
-        pos = ogg_vorbis_info->pos + offset;
-    else if (whence == 2)
-        pos = ogg_vorbis_info->length + offset;
-
-    if (pos < 0 || pos > ogg_vorbis_info->length) return -1;
-
-    ogg_vorbis_info->pos = pos;
-
-    return 0;
-}
-
-static int oc_close_func(void *datasource)
-{
-    return 0;
-}
-
-static long oc_tell_func(void *datasource)
-{
-    OVInfo *ogg_vorbis_info = (OVInfo*)datasource;
-
-    return (long)ogg_vorbis_info->pos;
-}
-#endif
-OVInfo *ONScripterLabel::openOggVorbis( unsigned char *buf, long len, int &channels, int &rate )
-{
-    OVInfo *ovi = NULL;
-
-#ifdef USE_OGG_VORBIS
-    ovi = new OVInfo();
-
-    ovi->buf = buf;
-    ovi->decoded_length = 0;
-    ovi->length = len;
-    ovi->pos = 0;
-
-    ov_callbacks oc;
-    oc.read_func  = oc_read_func;
-    oc.seek_func  = oc_seek_func;
-    oc.close_func = oc_close_func;
-    oc.tell_func  = oc_tell_func;
-    if (ov_open_callbacks(ovi, &ovi->ovf, NULL, 0, oc) < 0){
-        delete ovi;
-        return NULL;
-    }
-
-    vorbis_info *vi = ov_info( &ovi->ovf, -1 );
-    if (vi == NULL){
-        ov_clear(&ovi->ovf);
-        delete ovi;
-        return NULL;
-    }
-
-    channels = vi->channels;
-    rate = vi->rate;
-
-    ovi->cvt.buf = NULL;
-    ovi->cvt_len = 0;
-    SDL_BuildAudioCVT(&ovi->cvt,
-                      AUDIO_S16, channels, rate,
-                      audio_format.format, audio_format.channels, audio_format.freq);
-    ovi->mult1 = 10;
-    ovi->mult2 = (int)(ovi->cvt.len_ratio*10.0);
-
-    ovi->decoded_length = (long)(ov_pcm_total(&ovi->ovf, -1) * channels * 2);
-#endif
-
-    return ovi;
-}
-
-int ONScripterLabel::closeOggVorbis(OVInfo *ovi)
-{
-    if (ovi->buf){
-        ovi->buf = NULL;
-#ifdef USE_OGG_VORBIS
-        ovi->length = 0;
-        ovi->pos = 0;
-        ov_clear(&ovi->ovf);
-#endif
-    }
-    if (ovi->cvt.buf){
-        delete[] ovi->cvt.buf;
-        ovi->cvt.buf = NULL;
-        ovi->cvt_len = 0;
-    }
-    delete ovi;
-
-    return 0;
-}

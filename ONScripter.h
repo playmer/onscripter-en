@@ -1,6 +1,6 @@
 /* -*- C++ -*-
  *
- *  ONScripterLabel.h - Execution block parser of ONScripter-EN
+ *  ONScripter.h - Execution block parser of ONScripter-EN
  *
  *  Copyright (c) 2001-2011 Ogapee. All rights reserved.
  *  (original ONScripter, of which this is a fork).
@@ -96,7 +96,7 @@
 
 #define KEYPRESS_NULL ((SDL_Keycode)(SDLK_AUDIOFASTFORWARD+1)) // "null" for keypress variables
 
-class ONScripterLabel : public ScriptParser
+class ONScripter : public ScriptParser
 {
 public:
     static bool ToggleFullscreen(SDL_Window* Window);
@@ -141,8 +141,8 @@ public:
 
     typedef AnimationInfo::ONSBuf ONSBuf;
 
-    ONScripterLabel();
-    ~ONScripterLabel();
+    ONScripter();
+    ~ONScripter();
 
     void executeLabel();
     void runScript();
@@ -1171,6 +1171,6 @@ private:
 };
 
 
-void SetVolumeOnChannel(ONScripterLabel::SoundEngine& engine, int channel, bool muted, int volume);
+void SetVolumeOnChannel(ONScripter::SoundEngine& engine, int channel, bool muted, int volume);
 
 #endif // __ONSCRIPTER_LABEL_H__

@@ -24,9 +24,9 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "ONScripterLabel.h"
+#include "ONScripter.h"
 
-void ONScripterLabel::buildSinTable()
+void ONScripter::buildSinTable()
 {
     if (!sin_table) {
         //integer-based trig table, scaled up by TRIG_FACTOR
@@ -38,7 +38,7 @@ void ONScripterLabel::buildSinTable()
     }
 }
 
-void ONScripterLabel::buildCosTable()
+void ONScripter::buildCosTable()
 {
     if (!cos_table) {
         //integer-based trig table, scaled up by TRIG_FACTOR
@@ -53,7 +53,7 @@ void ONScripterLabel::buildCosTable()
 //
 // Emulation of Takashi Toyama's "trvswave.dll" NScripter plugin effect
 //
-void ONScripterLabel::effectTrvswave( char *params, int duration )
+void ONScripter::effectTrvswave( char *params, int duration )
 {
     enum {
         //some constants for trvswave
@@ -95,7 +95,7 @@ void ONScripterLabel::effectTrvswave( char *params, int duration )
 #define CENTER_X (screen_width/2)
 #define CENTER_Y (screen_height/2)
 
-void ONScripterLabel::buildWhirlTable()
+void ONScripter::buildWhirlTable()
 {
     if (whirl_table) return;
 
@@ -112,7 +112,7 @@ void ONScripterLabel::buildWhirlTable()
     }
 }
 
-void ONScripterLabel::effectWhirl( char *params, int duration )
+void ONScripter::effectWhirl( char *params, int duration )
 {
 //#define OMEGA (M_PI / 64)
 

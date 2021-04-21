@@ -53,7 +53,7 @@
 
 typedef unsigned char uchar3[3];
 
-class ONScripterLabel;
+class ONScripter;
 
 class ScriptHandler
 {
@@ -127,7 +127,7 @@ public:
     void setKeyTable( const unsigned char *key_table );
 
     void setSavedir( const char *dir );
-    inline void setOns( ONScripterLabel *newons){ ons = newons; }
+    inline void setOns( ONScripter *newons){ ons = newons; }
 
     // basic parser function
     const char *readToken(bool check_pretext);
@@ -434,7 +434,7 @@ private:
     
     ArrayVariable *root_array_variable, *current_array_variable;
 
-    ONScripterLabel *ons; //Mion: so script_h can call doErrorBox
+    ONScripter *ons; //Mion: so script_h can call doErrorBox
     void errorAndExit( const char *str, const char *title=NULL, const char *detail=NULL, bool is_warning=false );
     void errorAndCont( const char *str, const char *title=NULL, const char *detail=NULL );
     void simpleErrorAndExit( const char *str, const char *title=NULL, const char *detail=NULL, bool is_warning=false );
