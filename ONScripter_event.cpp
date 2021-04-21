@@ -1500,40 +1500,6 @@ float ToFloat(Sint16 aValue)
   return (static_cast<float>(aValue + 32768.f) / 65535.f);
 }
 
-//Uint64 NOW = SDL_GetPerformanceCounter();
-//Uint64 LAST = 0;
-//double deltaTime = 0;
-//static bool resending = false;
-
-void MoveMouse(std::pair<float, float> stickPosition, SDL_ControllerAxisEvent& event)
-{
-    //LAST = NOW;
-    //NOW = SDL_GetPerformanceCounter();
-    //
-    //deltaTime = (double)((NOW - LAST) / (double)SDL_GetPerformanceFrequency() );
-    //
-    //if (deltaTime > 1)
-    //  deltaTime = .016;
-    //
-    //constexpr int pixelsToMove = 10;
-    //int x, y;
-    //SDL_GetGlobalMouseState(&x, &y);
-    //
-    //stickPosition.first *= pixelsToMove;
-    //stickPosition.second *= pixelsToMove;
-    //
-    //int movX = stickPosition.first;
-    //int movY = stickPosition.second;
-    //
-    //printf("(%d, %d)\n", movX, movY);
-    //
-    //SDL_WarpMouseGlobal(x + stickPosition.first, y + stickPosition.second);
-    //resending = true;
-    //event.padding1 = 42; // mark this as a resent event
-    //SDL_Delay(10);
-    //SDL_PushEvent((SDL_Event*)&event);
-}
-
 void ONScripter::runEventLoop()
 {
     SDL_Event event, tmp_event;
@@ -1603,25 +1569,10 @@ void ONScripter::runEventLoop()
                 break;
             }
 
-            //if (event.caxis.padding1 == 42 && resending == false) // resent
-            //  break;
-
             if (sqrt((right.first * right.first) + (right.second * right.second)) > 0.5)
-            {
               WarpMouse(640, 480);
-              //MoveMouse(right, event.caxis);
-              //printf("Right Stick: (%f,%f)\n", right.first, right.second);
-            }
             else if (sqrt((left.first * left.first) + (left.second * left.second)) > 0.5)
-            {
               WarpMouse(640, 480);
-              //MoveMouse(left, event.caxis);
-              //printf("Left Stick: (%f,%f)\n\m", left.first, left.second);
-            }
-            //else
-            //{
-            //  resending = false;
-            //}
             break;
           }
 
