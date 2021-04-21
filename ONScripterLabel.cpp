@@ -429,6 +429,16 @@ void ONScripter::initSDL()
     }
     atexit(SDL_Quit_Wrapper); // work-around for OS/2
 
+    
+    for(int i = 0; i < SDL_NumJoysticks(); i++ ) 
+    {
+      if (SDL_IsGameController(i))
+      { 
+        // We don't care which controller, we're taking input from all of them.
+        SDL_GameControllerOpen(i);
+      }
+    }
+
     SDL_AudioInit("directsound");
 
 #ifdef ONSCRIPTER_CDAUDIO

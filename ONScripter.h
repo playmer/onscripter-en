@@ -126,7 +126,22 @@ public:
       int new_y = (y / scale) - (dstRect.y / scale);
 
       if (new_x < 0 || new_x > screen_surface->w || new_y < 0 || new_y > screen_surface->h)
+      {
+        // clip the mouse to the window
+        if (new_x < 0)
+          event.x = 0;
+        
+        if (new_x > screen_surface->w)
+          event.x = screen_surface->w;
+        
+        if (new_y < 0)
+          event.y = 0;
+        
+        if (new_y > screen_surface->h)
+          event.y = screen_surface->h;
+
         return false;
+      }
 
       event.x = new_x;
       event.y = new_y;
@@ -471,11 +486,8 @@ protected:
     void openAudio(int freq=DEFAULT_AUDIO_RATE, Uint16 format=MIX_DEFAULT_FORMAT, int channels=MIX_DEFAULT_CHANNELS);
 
 private:
-    enum {
-        DISPLAY_MODE_NORMAL  = 0, 
-        DISPLAY_MODE_TEXT    = 1,
-        DISPLAY_MODE_UPDATED = 2
-    };
+    // ----------------------------------------
+    // global variables and methods
     enum {
         IDLE_EVENT_MODE      = 0,
         WAIT_RCLICK_MODE     = 1,   // for lrclick
@@ -488,6 +500,11 @@ private:
         WAIT_VOICE_MODE      = 128,
         WAIT_TEXT_MODE       = 256, // clickwait, newpage, select
         WAIT_NO_ANIM_MODE    = 512
+    };
+    enum {
+        DISPLAY_MODE_NORMAL  = 0, 
+        DISPLAY_MODE_TEXT    = 1,
+        DISPLAY_MODE_UPDATED = 2
     };
     enum {
         EFFECT_DST_GIVEN     = 0,

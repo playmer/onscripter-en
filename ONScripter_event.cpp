@@ -906,51 +906,29 @@ void ONScripter::variableEditMode( SDL_KeyboardEvent *event )
 void ONScripter::shiftCursorOnButton( int diff )
 //moves the mouse cursor to the new button "moused-over" via keystroke
 {
-    int num = 0;
+    int num;
     ButtonLink *button = root_button_link.next;
-    while (button) {
+    for (num=0 ; button ; num++) 
         button = button->next;
-        ++num;
-    }
 
     shortcut_mouse_line += diff;
-    if      (shortcut_mouse_line < 0)    shortcut_mouse_line = num - 1;
+    if      (shortcut_mouse_line < 0)    shortcut_mouse_line = num-1;
     else if (shortcut_mouse_line >= num) shortcut_mouse_line = 0;
-    
-    button = root_button_link.next;
-    for (int i = 0; i < shortcut_mouse_line; ++i)
-        button = button->next;
 
-    if (button) {
-        SDL_Rect clip = {0, 0, button->select_rect.w, button->select_rect.h};
-        int x = button->select_rect.x;
-        int y = button->select_rect.y;
-        if (x < 0) clip.x -= x;
-        else if (x > screen_width){
-            clip.w = 0;
-            x = screen_width - 1;
-        }
-        else if (x+clip.w > screen_width) clip.w = screen_width - x;
-        if (y < 0) clip.y -= y;
-        else if (x > screen_width){
-            clip.h = 0;
-            y = screen_height - 1;
-        }
-        else if (y+clip.h > screen_height) clip.h = screen_height - y;
-        if (transbtn_flag && (clip.x < (Sint16) clip.w) && (clip.y < (Sint16) clip.h)){
-            AnimationInfo *anim = NULL;
-            if ( button->button_type == ButtonLink::SPRITE_BUTTON ||
-                 button->button_type == ButtonLink::EX_SPRITE_BUTTON )
-                anim = &sprite_info[ button->sprite_no ];
-            else
-                anim = button->anim[0];
-            SDL_Rect pos = anim->findOpaquePoint(&clip);
-            x += pos.x;
-            y += pos.y;
-        } else {
-            x += clip.x;
-            y += clip.y;
-        }
+    button = root_button_link.next;
+    for (int i=0 ; i<shortcut_mouse_line ; i++) 
+        button  = button->next;
+    
+    if (button){
+        int x = button->select_rect.x + button->select_rect.w/2;
+        int y = button->select_rect.y + button->select_rect.h/2;
+        if      (x < 0)             x = 0;
+        else if (x >= screen_width) x = screen_width-1;
+        if      (y < 0)              y = 0;
+        else if (y >= screen_height) y = screen_height-1;
+        //x = x * screen_device_width / screen_width;
+        //y = y * screen_device_width / screen_width;
+        //shift_over_button = button->no;
         WarpMouse(x, y);
     }
 }
@@ -1459,44 +1437,24 @@ enum WhatToDo
 
 int ONScripter::HandleGamepadEvent(SDL_Event& event, bool had_automode, bool& ctrl_toggle)
 {
+    printf("Buton: %d State: %d\n", event.cbutton.button, event.cbutton.state);
+
     SDL_KeyboardEvent keyEvent{};
 
     switch (event.cbutton.button)
     {
-          // Treat these as mouse buttons
-        case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
-        case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
-        case SDL_CONTROLLER_BUTTON_A:
-        case SDL_CONTROLLER_BUTTON_B:
-        case SDL_CONTROLLER_BUTTON_X:
-        case SDL_CONTROLLER_BUTTON_Y:
-        {
-          if (event.cbutton.state == SDL_PRESSED && !btndown_flag)
-            return WhatToDo::Break;
-
-          SDL_MouseButtonEvent mouseEvent;
-          mouseEvent.type = (event.cbutton.state == SDL_PRESSED) ? SDL_MOUSEBUTTONUP : SDL_MOUSEBUTTONDOWN;
-          mouseEvent.x = current_button_state.x;
-          mouseEvent.y = current_button_state.y;
-          
-          mouseEvent.button = SDL_BUTTON_LEFT;
-
-          if (event.cbutton.button == SDL_CONTROLLER_BUTTON_B
-              || event.cbutton.button == SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)
-            mouseEvent.button = SDL_BUTTON_RIGHT;
-
-          auto ret = mousePressEvent(&event.button);
-          if (ret) return Return;
-          if (!(event_mode & WAIT_TEXTOUT_MODE) && had_automode && !automode_flag){
-              clearTimer(break_id);
-          }
-        }
-
           // Treat these as keyboard buttons
+        case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER:
+        case SDL_CONTROLLER_BUTTON_B:
+          keyEvent.keysym.sym = SDLK_ESCAPE; goto KEYHANDLER;
+        case SDL_CONTROLLER_BUTTON_A:
+        case SDL_CONTROLLER_BUTTON_Y:
+          keyEvent.keysym.sym = SDLK_SPACE; goto KEYHANDLER;
+        case SDL_CONTROLLER_BUTTON_LEFTSHOULDER:
+        case SDL_CONTROLLER_BUTTON_X:
+          keyEvent.keysym.sym = SDLK_RETURN; goto KEYHANDLER;
         case SDL_CONTROLLER_BUTTON_BACK:
-          keyEvent.keysym.sym = SDLK_ESCAPE; goto KEYHANDLER;
         case SDL_CONTROLLER_BUTTON_GUIDE: 
-          keyEvent.keysym.sym = SDLK_ESCAPE; goto KEYHANDLER;
         case SDL_CONTROLLER_BUTTON_START:
           keyEvent.keysym.sym = SDLK_ESCAPE; goto KEYHANDLER;
         //case SDL_CONTROLLER_BUTTON_LEFTSTICK:
@@ -1537,6 +1495,44 @@ int ONScripter::HandleGamepadEvent(SDL_Event& event, bool had_automode, bool& ct
     return Nothing;
 }
 
+float ToFloat(Sint16 aValue)
+{
+  return (static_cast<float>(aValue + 32768.f) / 65535.f);
+}
+
+//Uint64 NOW = SDL_GetPerformanceCounter();
+//Uint64 LAST = 0;
+//double deltaTime = 0;
+//static bool resending = false;
+
+void MoveMouse(std::pair<float, float> stickPosition, SDL_ControllerAxisEvent& event)
+{
+    //LAST = NOW;
+    //NOW = SDL_GetPerformanceCounter();
+    //
+    //deltaTime = (double)((NOW - LAST) / (double)SDL_GetPerformanceFrequency() );
+    //
+    //if (deltaTime > 1)
+    //  deltaTime = .016;
+    //
+    //constexpr int pixelsToMove = 10;
+    //int x, y;
+    //SDL_GetGlobalMouseState(&x, &y);
+    //
+    //stickPosition.first *= pixelsToMove;
+    //stickPosition.second *= pixelsToMove;
+    //
+    //int movX = stickPosition.first;
+    //int movY = stickPosition.second;
+    //
+    //printf("(%d, %d)\n", movX, movY);
+    //
+    //SDL_WarpMouseGlobal(x + stickPosition.first, y + stickPosition.second);
+    //resending = true;
+    //event.padding1 = 42; // mark this as a resent event
+    //SDL_Delay(10);
+    //SDL_PushEvent((SDL_Event*)&event);
+}
 
 void ONScripter::runEventLoop()
 {
@@ -1558,62 +1554,79 @@ void ONScripter::runEventLoop()
         }
 
         switch (event.type) {
-              // Joypad Events
-            case SDL_CONTROLLERDEVICEADDED:
-            {
-              auto gamepadEvent = event.cdevice;
+            // Joypad Events
+          case SDL_CONTROLLERDEVICEADDED:
+          {
+            auto gamepadEvent = event.cdevice;
         
-              auto pad = SDL_GameControllerOpen(gamepadEvent.which);
+            // We don't care which controller, we're taking input from all of them.
+            auto pad = SDL_GameControllerOpen(gamepadEvent.which);
           
-              if (pad)
-              {
-                auto name = SDL_GameControllerName(pad);
-                SDL_Joystick* joystick = SDL_GameControllerGetJoystick(pad);
-                SDL_JoystickID instanceId = SDL_JoystickInstanceID(joystick);
-
-                printf("Added %s, %d\n", name, instanceId);
-                //mControllers.emplace(instanceId, Controller(pad));
-              }
-            }
-            case SDL_CONTROLLERDEVICEREMOVED:
+            if (pad)
             {
-              auto gamepadEvent = event.cdevice;
-        
-              //if (auto it = mControllers.find(gamepadEvent.which); 
-              //    it != mControllers.end())
-              //{
-              //  mControllers.erase(it);
-              //}
+              auto name = SDL_GameControllerName(pad);
+              SDL_Joystick* joystick = SDL_GameControllerGetJoystick(pad);
+              SDL_JoystickID instanceId = SDL_JoystickInstanceID(joystick);
 
-              printf("Removed %d\n", gamepadEvent.which);
-              break;
+              printf("Added %s, %d\n", name, instanceId);
             }
-            case SDL_CONTROLLERBUTTONDOWN:
-            case SDL_CONTROLLERBUTTONUP:
+            break;
+          }
+          case SDL_CONTROLLERDEVICEREMOVED:
+          {
+            auto gamepadEvent = event.cdevice;
+            printf("Removed %d\n", gamepadEvent.which);
+            break;
+          }
+          case SDL_CONTROLLERBUTTONDOWN:
+          case SDL_CONTROLLERBUTTONUP:
+          {
+            auto ret = HandleGamepadEvent(event, had_automode, ctrl_toggle);
+            if (ret == WhatToDo::Break) break;
+            else if (ret == WhatToDo::Return) return;
+            break;
+          }
+
+          
+          case SDL_CONTROLLERAXISMOTION:
+          {
+            static std::pair<float, float> left;
+            static std::pair<float, float> right;
+            switch (event.caxis.axis)
             {
-              auto ret = HandleGamepadEvent(event, had_automode, ctrl_toggle);
-              if (ret == WhatToDo::Break) break;
-              else if (ret == WhatToDo::Return) return;
+              case SDL_CONTROLLER_AXIS_LEFTX: left.first = 2.f * (ToFloat(event.caxis.value) - .5f); break;
+              case SDL_CONTROLLER_AXIS_LEFTY: left.second = 2.f * (ToFloat(event.caxis.value) - .5f); break;
+              case SDL_CONTROLLER_AXIS_RIGHTX: right.first = 2.f * (ToFloat(event.caxis.value) - .5f); break;
+              case SDL_CONTROLLER_AXIS_RIGHTY: right.second = 2.f * (ToFloat(event.caxis.value) - .5f); break;
+              case SDL_CONTROLLER_AXIS_TRIGGERLEFT:
+              case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
+                break;
             }
 
+            //if (event.caxis.padding1 == 42 && resending == false) // resent
+            //  break;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            if (sqrt((right.first * right.first) + (right.second * right.second)) > 0.5)
+            {
+              WarpMouse(640, 480);
+              //MoveMouse(right, event.caxis);
+              //printf("Right Stick: (%f,%f)\n", right.first, right.second);
+            }
+            else if (sqrt((left.first * left.first) + (left.second * left.second)) > 0.5)
+            {
+              WarpMouse(640, 480);
+              //MoveMouse(left, event.caxis);
+              //printf("Left Stick: (%f,%f)\n\m", left.first, left.second);
+            }
+            //else
+            //{
+            //  resending = false;
+            //}
+            break;
+          }
 
           case SDL_MOUSEMOTION:
-            if (!TranslateMouse(event.motion)) return;
+            TranslateMouse(event.motion);
             ret = mouseMoveEvent(&event.motion);
             if (ret) return;
             break;
@@ -1621,7 +1634,7 @@ void ONScripter::runEventLoop()
           case SDL_MOUSEBUTTONDOWN:
             if ( !btndown_flag ) break;
           case SDL_MOUSEBUTTONUP:
-            if (!TranslateMouse(event.button)) return;
+            if (!TranslateMouse(event.button)) break;
             ret = mousePressEvent(&event.button);
             if (ret) return;
             if (!(event_mode & WAIT_TEXTOUT_MODE) && had_automode && !automode_flag){
@@ -1630,7 +1643,7 @@ void ONScripter::runEventLoop()
             break;
 
           case SDL_MOUSEWHEEL:
-            if (!TranslateMouse(event.wheel)) return;
+            if (!TranslateMouse(event.wheel)) break;
             ret = mouseWheelEvent(&event.wheel);
             if (ret) return;
             if (!(event_mode & WAIT_TEXTOUT_MODE) && had_automode && !automode_flag){
