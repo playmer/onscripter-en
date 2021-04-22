@@ -629,6 +629,7 @@ void ONScripter::initSDL()
         }
     }
 #endif
+    screen_surface = AnimationInfo::allocSurface( screen_width, screen_height );
     screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, fullscreen_mode );
 
     /* ---------------------------------------- */
@@ -1218,7 +1219,6 @@ int ONScripter::init()
     printf("%s\n", SDL_GetCurrentAudioDriver());
 
     image_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, 1, 1, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000 );
-    screen_surface = AnimationInfo::allocSurface( screen_width, screen_height );
     accumulation_surface = AnimationInfo::allocSurface( screen_width, screen_height );
     backup_surface       = AnimationInfo::allocSurface( screen_width, screen_height );
     effect_src_surface   = AnimationInfo::allocSurface( screen_width, screen_height );
