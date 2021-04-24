@@ -3929,7 +3929,7 @@ int ONScripter::captionCommand()
     setStr( &wm_icon_string,  buf2 );
     delete[] buf2;
     //printf("caption (utf8): '%s'\n", wm_title_string);
-    SDL_SetWindowTitle(mWindow, wm_edit_string);
+    SDL_SetWindowTitle(mWindow, wm_title_string);
     //FIXME: SDL_SetWindowIcon(mWindow, wm_icon_string);
 
     return RET_CONTINUE;

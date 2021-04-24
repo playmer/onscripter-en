@@ -89,7 +89,7 @@
 #define DEFAULT_AUDIO_RATE 44100
 #endif
 
-#define DEFAULT_WM_TITLE "ONScripter-EN"
+inline std::string gDEFAULT_WM_TITLE = "ONScripter-EN";
 #define DEFAULT_WM_ICON  "Ons-en"
 
 #define NUM_GLYPH_CACHE 30

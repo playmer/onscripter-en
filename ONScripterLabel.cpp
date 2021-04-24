@@ -655,7 +655,7 @@ void ONScripter::initSDL()
 
     initSJIS2UTF16();
 
-    setStr(&wm_title_string, DEFAULT_WM_TITLE);
+    setStr(&wm_title_string, gDEFAULT_WM_TITLE.c_str());
     setStr(&wm_icon_string, DEFAULT_WM_ICON);
     SDL_SetWindowTitle(mWindow, wm_title_string);
     //FIXME: SDL_SetWindowIcon(mWindow, wm_icon_string);

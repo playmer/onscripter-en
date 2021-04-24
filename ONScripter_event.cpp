@@ -850,7 +850,7 @@ void ONScripter::variableEditMode( SDL_KeyboardEvent *event )
         if ( (variable_edit_mode == EDIT_SELECT_MODE) ||
              (variable_edit_mode == EDIT_VOLUME_MODE) ){
             variable_edit_mode = NOT_EDIT_MODE;
-            SDL_SetWindowTitle(mWindow, DEFAULT_WM_TITLE);
+            SDL_SetWindowTitle(mWindow, gDEFAULT_WM_TITLE.c_str());
             //FIXME: SDL_SetWindowIcon(mWindow, DEFAULT_WM_ICON);
             SDL_Delay( 100 );
             SDL_SetWindowTitle(mWindow, wm_edit_string);
