@@ -1058,6 +1058,10 @@ void ONScripter::setWidescreen()
 }
 #endif
 
+void ONScripter::setNoScaled()
+{
+    scaled_flag = false;
+}
 void ONScripter::setScaled()
 {
     scaled_flag = true;

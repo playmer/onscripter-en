@@ -30,6 +30,7 @@
 // Modified by Mion, November 2009, to update from
 // Ogapee's 20091115 release source code.
 
+#include <filesystem>
 #include "ONScripter.h"
 #include <new>
 #include <cstdio>
@@ -253,7 +254,40 @@ SDL_Surface *ONScripter::createSurfaceFromFile(char *filename, int *location)
     }
 
     if (!alt_buffer) {
-        script_h.cBR->getFile( filename, buffer, location );
+      std::filesystem::path potentialReplacement = "assets";
+      potentialReplacement = potentialReplacement / filename;
+
+      if (std::filesystem::exists(potentialReplacement.replace_extension(".png")))
+        potentialReplacement = potentialReplacement.replace_extension(".png");
+      
+      if (std::filesystem::exists(potentialReplacement))
+      {
+        FILE* fp = std::fopen(potentialReplacement.u8string().c_str(), "rb");
+        if (fp) {
+            fseek(fp, 0, SEEK_END);
+            length = ftell(fp);
+            fseek(fp, 0, SEEK_SET);
+
+            if (tmp_image_buf == buffer)
+            {
+              delete tmp_image_buf;
+              tmp_image_buf = new(std::nothrow) unsigned char[length];
+              buffer = tmp_image_buf;
+            }
+            else
+            {
+              delete buffer;
+              buffer = new(std::nothrow) unsigned char[length];
+            }
+
+            fread(buffer, 1, length, fp);
+            fclose(fp);
+        }
+      }
+      else
+      {
+        script_h.cBR->getFile(filename, buffer, location);
+      }
     }
     else {
         FILE* fp;

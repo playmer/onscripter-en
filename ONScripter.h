@@ -196,6 +196,7 @@ public:
     void setWidescreen();
 #endif
     void setScaled();
+    void setNoScaled();
     void setNoMovieUpscale();
     inline void setStrict() { script_h.strict_warnings = true; }
     void setGameIdentifier(const char *gameid);

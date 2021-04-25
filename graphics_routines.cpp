@@ -28,6 +28,8 @@
 #include "graphics_blend.h"
 #include "graphics_resize.h"
 
+#include "ONScripter.h"
+
 #if defined(USE_X86_GFX)
 #include "graphics_mmx.h"
 #include "graphics_sse2.h"
@@ -263,7 +265,7 @@ int resizeSurface( SDL_Surface *src, SDL_Surface *dst, int num_cells )
     SDL_LockSurface( src );
     Uint32 *src_buffer = (Uint32 *)src->pixels;
     Uint32 *dst_buffer = (Uint32 *)dst->pixels;
-
+    
     /* size of tmp_buffer must be larger than 16 bytes */
     size_t len = src->w * (src->h+1) * 4 + 4;
     if (resize_buffer_size < len){
@@ -274,7 +276,7 @@ int resizeSurface( SDL_Surface *src, SDL_Surface *dst, int num_cells )
     resizeImage( (unsigned char*)dst_buffer, dst->w, dst->h, dst->w * 4,
                  (unsigned char*)src_buffer, src->w, src->h, src->w * 4,
                  4, resize_buffer, src->w * 4, num_cells );
-
+    
     SDL_UnlockSurface( src );
     SDL_UnlockSurface( dst );
 

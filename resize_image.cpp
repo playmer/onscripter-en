@@ -121,7 +121,7 @@ void resizeImage( unsigned char *dst_buffer, int dst_width, int dst_height, int 
                   int byte_per_pixel, unsigned char *tmp_buffer, int tmp_total_width,
                   int num_cells, bool no_interpolate )
 {
-    if (dst_width == 0 || dst_height == 0) return;
+    if (dst_width == 0 || dst_height == 0 || src_width == 1) return;
     
     unsigned char *tmp_buf = tmp_buffer;
     unsigned char *src_buf = src_buffer;

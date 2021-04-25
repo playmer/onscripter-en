@@ -291,8 +291,8 @@ static void parseOptions(int argc, char **argv, ONScripter &ons, bool &hasArchiv
                 ons.setWidescreen();
             }
 #endif
-            else if ( !strcmp( argv[0]+1, "-scale" ) ){
-                ons.setScaled();
+            else if ( !strcmp( argv[0]+1, "-no-scale" ) ){
+                ons.setNoScaled();
             }
             else if ( !strcmp( argv[0]+1, "-no-movie-upscale" ) ){
                 ons.setNoMovieUpscale();
@@ -412,6 +412,7 @@ static bool parseOptionFile(const char *filename, ONScripter &ons, bool &hasArch
 int main( int argc, char **argv )
 {
     ONScripter ons;
+    ons.setScaled();
 
 #ifdef MACOSX
     //Check for application bundle on Mac OS X

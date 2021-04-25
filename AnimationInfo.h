@@ -106,6 +106,7 @@ public:
     int trans;
     char *image_name;
     SDL_Surface *image_surface;
+    SDL_Rect image_surface_size;
     unsigned char *alpha_buf;
     /* Variables for extended sprite (lsp2, drawsp2, etc.) */
     int scale_x, scale_y, rot;

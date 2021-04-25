@@ -49,8 +49,6 @@ typedef SarReader reader;
 typedef NsaReader reader;
 #endif
 
-extern int errno;
-
 int main( int argc, char **argv )
 {
     DirPaths path;

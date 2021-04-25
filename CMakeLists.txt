@@ -8,6 +8,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 add_definitions(-DMUSIC_OGG)
 
 add_subdirectory(deps)
+add_subdirectory(tools)
+
 
 add_executable(onscripter_en)
 
@@ -62,9 +64,9 @@ PRIVATE
     #LUAHandler.h
     #MadWrapper.cpp
     #MadWrapper.h
+    #nscriptdecode.cpp
     NsaReader.cpp
     NsaReader.h
-    #nscriptdecode.cpp
     onscripter.cpp
     ONScripterLabel.cpp
     ONScripter.h

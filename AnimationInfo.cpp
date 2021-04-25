@@ -1042,6 +1042,8 @@ SDL_Surface *AnimationInfo::resize( SDL_Surface *surface, int ratio1, int ratio2
     const int MAX_PITCH = 16384;
     int h = 0;
     int w = ((src_s->w / num_of_cells) * ratio1 / ratio2) * num_of_cells;
+
+    //if (w > 3840) w = 3840;
 #ifdef RCA_SCALE
     if (stretch_x > 1.0)
         w = int((src_s->w / num_of_cells) * ratio1 * stretch_x / ratio2 + 0.5) * num_of_cells;
