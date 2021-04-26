@@ -77,7 +77,8 @@ public:
     bool is_button = false;
     bool is_copy; // allocated buffers should not be deleted from a copied instance
     bool stale_image; //set to true when the image needs to be created/redone
-
+    
+    SDL_Rect clipped_pos = {0,0,0,0};
     SDL_Rect orig_pos; //Mion: position and size of the image before resizing
     SDL_Rect pos; // position and size of the current cell
 

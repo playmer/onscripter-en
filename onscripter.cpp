@@ -414,6 +414,7 @@ int main( int argc, char **argv )
     ONScripter ons;
     ons.setScaled();
     ons.mUpscaledTextures = true;
+    ons.mUpscalingFactor = 4;
 
 #ifdef MACOSX
     //Check for application bundle on Mac OS X

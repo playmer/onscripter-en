@@ -151,7 +151,8 @@ public:
     SDL_Renderer* mRenderer;
     SDL_Window* mWindow;
     SDL_mutex* mSmpegMutex;
-    bool mUpscaledTextures;
+    bool mUpscaledTextures = false;
+    int mUpscalingFactor = 0;
     static void SMpegDisplayCallback(void* data, SMPEG_Frame* frame);
     SDL_Surface* SDL_SetVideoMode(int width, int height, int bpp, bool fullscreen);
 

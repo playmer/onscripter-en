@@ -943,6 +943,7 @@ SDL_Surface *AnimationInfo::setupImageAlpha( SDL_Surface *surface,
         SDL_PixelFormat *fmt = surface->format;
         SDL_Surface *surface2 = SDL_CreateRGBSurface( SDL_SWSURFACE, w3, h,
                                                       fmt->BitsPerPixel, fmt->Rmask, fmt->Gmask, fmt->Bmask, fmt->Amask );
+        clipped_pos = { 0,0, w3, h };
         SDL_LockSurface( surface2 );
         Uint32 *buffer2 = (Uint32 *)surface2->pixels;
 
@@ -1024,35 +1025,6 @@ SDL_Surface *AnimationInfo::setupImageAlpha( SDL_Surface *surface,
     return surface;
 }
 
-
-std::pair<int, int> GetOriginalTextureDimensions(ONScripter* onscripter, const char* filename)
-{
-  std::pair<int, int> dimensions{0,0};
-  
-    std::filesystem::path originalPath = filename;
-    auto adjustedPath = originalPath.parent_path() / "Originals" / originalPath.filename();
-  
-    FILE* fp = std::fopen(adjustedPath.u8string().c_str(), "rb");
-    if (fp) {
-        fseek(fp, 0, SEEK_END);
-        auto length = ftell(fp);
-        fseek(fp, 0, SEEK_SET);
-        std::vector<unsigned char> buffer;
-        buffer.resize(length);
-        fread(buffer.data(), 1, length, fp);
-        fclose(fp);
-
-        SDL_RWops *src = SDL_RWFromMem(buffer.data(), length);
-        SDL_Surface *tmp = IMG_Load_RW(src, 0);
-        dimensions = { tmp->w, tmp->h };
-        SDL_FreeSurface(tmp);
-        
-        return dimensions;
-    }
-
-    return dimensions;
-}
-
 #ifdef RCA_SCALE
 SDL_Surface *AnimationInfo::resize( SDL_Surface *surface, int ratio1, int ratio2,
                                     float stretch_x, float stretch_y )
@@ -1071,53 +1043,57 @@ SDL_Surface *AnimationInfo::resize( ONScripter* onscripter, SDL_Surface *surface
     SDL_Surface *src_s = surface;
     SDL_PixelFormat *fmt = surface->format;
 
+    int src_w = src_s->w;
+    int src_h = src_s->h;
+
+    if (onscripter->mUpscaledTextures)
+    {
+      src_w  = src_w / onscripter->mUpscalingFactor;
+      src_h  = src_h / onscripter->mUpscalingFactor;
+    }
+
     const int MAX_PITCH = 16384;
     int h = 0;
-    int w = ((src_s->w / num_of_cells) * ratio1 / ratio2) * num_of_cells;
+    int w = ((src_w / num_of_cells) * ratio1 / ratio2) * num_of_cells;
 
     //if (w > 3840) w = 3840;
 #ifdef RCA_SCALE
     if (stretch_x > 1.0)
-        w = int((src_s->w / num_of_cells) * ratio1 * stretch_x / ratio2 + 0.5) * num_of_cells;
+        w = int((src_w / num_of_cells) * ratio1 * stretch_x / ratio2 + 0.5) * num_of_cells;
 #endif
     if (w >= MAX_PITCH){
         //too wide for SDL_Surface pitch (Uint16) at 32bpp; size differently
 #ifdef RCA_SCALE
         if (stretch_y > 1.0)
             fprintf(stderr, " *** image '%s' is too wide to resize to (%d,%d); ",
-                    file_name, w, int(src_s->h * ratio1 * stretch_y / ratio2 + 0.5));
+                    file_name, w, int(src_h * ratio1 * stretch_y / ratio2 + 0.5));
         else
 #endif
         fprintf(stderr, " *** image '%s' is too wide to resize to (%d,%d); ",
-                file_name, w, src_s->h * ratio1 / ratio2);
+                file_name, w, src_h * ratio1 / ratio2);
         w = (MAX_PITCH - 1) / num_of_cells * num_of_cells;
 #ifdef RCA_SCALE
         if (stretch_y > 1.0)
-            h = src_s->h * w * stretch_y / stretch_x / src_s->w + 0.5;
+            h = src_h * w * stretch_y / stretch_x / src_w + 0.5;
         else
 #endif
-        h = src_s->h * w / src_s->w;
+        h = src_h * w / src_w;
         if ( h == 0 ) h = 1;
         fprintf(stderr, "resizing to (%d,%d) instead *** \n", w, h);
     }else{
         if ( w == 0 ) w = num_of_cells;
 #ifdef RCA_SCALE
         if (stretch_y > 1.0)
-            h = src_s->h * ratio1 * stretch_y / ratio2 + 0.5;
+            h = src_h * ratio1 * stretch_y / ratio2 + 0.5;
         else
 #endif
-        h = src_s->h * ratio1 / ratio2;
+        h = src_h * ratio1 / ratio2;
         if ( h == 0 ) h = 1;
     }
 
-    if (onscripter->mUpscaledTextures 
-        || ((w > onscripter->screen_surface->w) || (h > onscripter->screen_surface->h)))
+    if (!onscripter->mUpscaledTextures 
+        && ((w > onscripter->screen_surface->w) || (h > onscripter->screen_surface->h)))
     {
-      if (onscripter->mUpscaledTextures)
-      {
-        auto originalDim = GetOriginalTextureDimensions(onscripter, file_name);
-      }
-
       float scaleHeight = onscripter->screen_surface->h / (float)src_s->h;
       float scaleWidth = onscripter->screen_surface->w  / (float)src_s->w;
       float scale = std::min(scaleHeight, scaleWidth);

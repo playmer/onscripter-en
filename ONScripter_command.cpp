@@ -4178,12 +4178,12 @@ int ONScripter::btnCommand()
 
     button->select_rect = button->image_rect;
     
-    if (mUpscaledTextures)
-    {
-      src_rect.x = 4 * script_h.readInt();
-      src_rect.y = 4 * script_h.readInt();
-    }
-    else
+    //if (mUpscaledTextures)
+    //{
+    //  src_rect.x = 4 * script_h.readInt();
+    //  src_rect.y = 4 * script_h.readInt();
+    //}
+    //else
     {
       src_rect.x = StretchPosX(script_h.readInt());
       src_rect.y = StretchPosY(script_h.readInt());
@@ -4202,12 +4202,12 @@ int ONScripter::btnCommand()
         button->image_rect.h = btndef_info.image_surface->h - src_rect.y;
     }
     
-    if (mUpscaledTextures)
-    {
-      src_rect.w = w * 4;
-      src_rect.h = h * 4;
-    }
-    else
+    //if (mUpscaledTextures)
+    //{
+    //  src_rect.w = w * 4;
+    //  src_rect.h = h * 4;
+    //}
+    //else
     {
       src_rect.w = button->image_rect.w;
       src_rect.h = button->image_rect.h;
@@ -4223,22 +4223,8 @@ int ONScripter::btnCommand()
     button->anim[0]->pos.x = button->image_rect.x;
     button->anim[0]->pos.y = button->image_rect.y;
     if (btndef_info.image_surface) {
-        if (mUpscaledTextures && button->image_rect.w > 0 &&  button->image_rect.h > 0)
-        {
-          auto temp = SDL_CreateRGBSurface(SDL_SWSURFACE, src_rect.w, src_rect.h, BPP, RMASK, GMASK, BMASK, AMASK);
-          SDL_BlitSurface(btndef_info.image_surface, &src_rect, temp, nullptr);
-          button->anim[0]->allocImage( button->image_rect.w, button->image_rect.h );
-          ons_gfx::resizeSurface(temp, button->anim[0]->image_surface, 1);
-
-
-          //SDL_SaveBMP(temp, filename.c_str());
-          SDL_FreeSurface(temp);
-        }
-        else
-        {
-          button->anim[0]->allocImage( button->image_rect.w, button->image_rect.h );
-          button->anim[0]->copySurface( btndef_info.image_surface, &src_rect );
-        }
+        button->anim[0]->allocImage( button->image_rect.w, button->image_rect.h );
+        button->anim[0]->copySurface( btndef_info.image_surface, &src_rect );
     }
 
     root_button_link.insert( button );
