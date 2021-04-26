@@ -73,6 +73,7 @@ public:
 #endif
     };
     
+    bool is_cursor = false;
     bool is_sprite = false;
     bool is_button = false;
     bool is_copy; // allocated buffers should not be deleted from a copied instance

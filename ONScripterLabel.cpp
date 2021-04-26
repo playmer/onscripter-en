@@ -2424,6 +2424,7 @@ void ONScripter::decodeExbtnControl( const char *ctl_str, SDL_Rect *check_src_re
 void ONScripter::loadCursor( int no, const char *str, int x, int y, bool abs_flag )
 {
     cursor_info[ no ].setImageName( str );
+    cursor_info[ no ].is_cursor = true;
     cursor_info[ no ].orig_pos.x = x;
     cursor_info[ no ].orig_pos.y = y;
     UpdateAnimPosXY(&cursor_info[ no ]);

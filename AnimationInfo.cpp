@@ -1046,7 +1046,7 @@ SDL_Surface *AnimationInfo::resize( ONScripter* onscripter, SDL_Surface *surface
     int src_w = src_s->w;
     int src_h = src_s->h;
 
-    if (onscripter->mUpscaledTextures)
+    if (onscripter->mUpscaledTextures && !is_cursor)
     {
       src_w  = src_w / onscripter->mUpscalingFactor;
       src_h  = src_h / onscripter->mUpscalingFactor;
