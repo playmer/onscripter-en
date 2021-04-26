@@ -51,6 +51,8 @@ inline bool equalColors(const uchar3 &color1, const uchar3 &color2) {
             (color1[2] == color2[2]));
 }
 
+class ONScripter;
+
 class AnimationInfo{
 public:
 #ifdef BPP16
@@ -70,7 +72,9 @@ public:
            TRANS_LAYER          = 9
 #endif
     };
-
+    
+    bool is_sprite = false;
+    bool is_button = false;
     bool is_copy; // allocated buffers should not be deleted from a copied instance
     bool stale_image; //set to true when the image needs to be created/redone
 
@@ -167,7 +171,7 @@ public:
 #ifdef RCA_SCALE
     SDL_Surface *resize( SDL_Surface *surface, int ratio1=1, int ratio2=1, float stretch_x=1.0, float stretch_y=1.0 );
 #else
-    SDL_Surface *resize( SDL_Surface *surface, int ratio1=1, int ratio2=1 );
+    SDL_Surface *resize( ONScripter* onscripter, SDL_Surface *surface, int ratio1=1, int ratio2=1 );
 #endif
     void setImage( SDL_Surface *surface );
 };

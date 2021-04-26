@@ -27,6 +27,9 @@
  *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <filesystem>
+
+#include "ONScripter.h"
 #include "AnimationInfo.h"
 #include "BaseReader.h"
 
@@ -1021,11 +1024,40 @@ SDL_Surface *AnimationInfo::setupImageAlpha( SDL_Surface *surface,
     return surface;
 }
 
+
+std::pair<int, int> GetOriginalTextureDimensions(ONScripter* onscripter, const char* filename)
+{
+  std::pair<int, int> dimensions{0,0};
+  
+    std::filesystem::path originalPath = filename;
+    auto adjustedPath = originalPath.parent_path() / "Originals" / originalPath.filename();
+  
+    FILE* fp = std::fopen(adjustedPath.u8string().c_str(), "rb");
+    if (fp) {
+        fseek(fp, 0, SEEK_END);
+        auto length = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+        std::vector<unsigned char> buffer;
+        buffer.resize(length);
+        fread(buffer.data(), 1, length, fp);
+        fclose(fp);
+
+        SDL_RWops *src = SDL_RWFromMem(buffer.data(), length);
+        SDL_Surface *tmp = IMG_Load_RW(src, 0);
+        dimensions = { tmp->w, tmp->h };
+        SDL_FreeSurface(tmp);
+        
+        return dimensions;
+    }
+
+    return dimensions;
+}
+
 #ifdef RCA_SCALE
 SDL_Surface *AnimationInfo::resize( SDL_Surface *surface, int ratio1, int ratio2,
                                     float stretch_x, float stretch_y )
 #else
-SDL_Surface *AnimationInfo::resize( SDL_Surface *surface, int ratio1, int ratio2 )
+SDL_Surface *AnimationInfo::resize( ONScripter* onscripter, SDL_Surface *surface, int ratio1, int ratio2 )
 #endif
 {
 #ifdef RCA_SCALE
@@ -1077,6 +1109,30 @@ SDL_Surface *AnimationInfo::resize( SDL_Surface *surface, int ratio1, int ratio2
         h = src_s->h * ratio1 / ratio2;
         if ( h == 0 ) h = 1;
     }
+
+    if (onscripter->mUpscaledTextures 
+        || ((w > onscripter->screen_surface->w) || (h > onscripter->screen_surface->h)))
+    {
+      if (onscripter->mUpscaledTextures)
+      {
+        auto originalDim = GetOriginalTextureDimensions(onscripter, file_name);
+      }
+
+      float scaleHeight = onscripter->screen_surface->h / (float)src_s->h;
+      float scaleWidth = onscripter->screen_surface->w  / (float)src_s->w;
+      float scale = std::min(scaleHeight, scaleWidth);
+      if (/*!is_sprite ||*/ !is_button || !onscripter->mUpscaledTextures)
+      {
+        w = scale * src_s->w;
+        h = scale * src_s->h;
+      }
+      else
+      {
+        w = src_s->w;
+        h = src_s->h;
+      }
+    }
+
     surface = SDL_CreateRGBSurface( SDL_SWSURFACE, w, h,
                                     fmt->BitsPerPixel, fmt->Rmask, fmt->Gmask, fmt->Bmask, fmt->Amask);
     ons_gfx::resizeSurface( src_s, surface, num_of_cells );

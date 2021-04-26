@@ -31,6 +31,10 @@
 #include "graphics_resize.h"
 #include "version.h"
 
+#include <string>
+
+#include <SDL_image.h>
+
 #include <cstdio>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -2037,7 +2041,8 @@ int ONScripter::lspCommand()
     int no = script_h.readInt();
     if ( sprite_info[no].image_surface && sprite_info[no].visible )
         dirty_rect.add( sprite_info[no].pos );
-
+    
+    sprite_info[no].is_sprite = true;
     const char *buf = script_h.readStr();
     sprite_info[ no ].setImageName( buf );
 
@@ -4118,6 +4123,7 @@ int ONScripter::btndefCommand()
 
         if ( buf[0] != '\0' ){
             btndef_info.setImageName( buf );
+            btndef_info.is_button = true;
             parseTaggedString( &btndef_info );
             btndef_info.trans_mode = AnimationInfo::TRANS_COPY;
 #ifdef RCA_SCALE
@@ -4156,15 +4162,32 @@ int ONScripter::btnCommand()
 
     button->no           = script_h.readInt();
 
-    button->image_rect.x = StretchPosX(script_h.readInt());
-    button->image_rect.y = StretchPosY(script_h.readInt());
-    button->image_rect.w = StretchPosX(script_h.readInt());
-    button->image_rect.h = StretchPosY(script_h.readInt());
+    int x = script_h.readInt();
+    int y = script_h.readInt();
+    int w = script_h.readInt();
+    int h = script_h.readInt();
+
+
+    button->image_rect.x = StretchPosX(x);
+    button->image_rect.y = StretchPosY(y);
+    button->image_rect.w = StretchPosX(w);
+    button->image_rect.h = StretchPosY(h);
+
+    printf("Button           %d, (%d, %d) (%d, %d)\n", button->no, x, y, w, h);    
+    printf("Stretched Button %d, (%d, %d) (%d, %d)\n", button->no, button->image_rect.x, button->image_rect.y, button->image_rect.w, button->image_rect.h);
 
     button->select_rect = button->image_rect;
-
-    src_rect.x = StretchPosX(script_h.readInt());
-    src_rect.y = StretchPosY(script_h.readInt());
+    
+    if (mUpscaledTextures)
+    {
+      src_rect.x = 4 * script_h.readInt();
+      src_rect.y = 4 * script_h.readInt();
+    }
+    else
+    {
+      src_rect.x = StretchPosX(script_h.readInt());
+      src_rect.y = StretchPosY(script_h.readInt());
+    }
 
     if (!btndef_info.image_surface){
         button->image_rect.w = 0;
@@ -4178,8 +4201,21 @@ int ONScripter::btnCommand()
         src_rect.y + button->image_rect.h > btndef_info.image_surface->h){
         button->image_rect.h = btndef_info.image_surface->h - src_rect.y;
     }
-    src_rect.w = button->image_rect.w;
-    src_rect.h = button->image_rect.h;
+    
+    if (mUpscaledTextures)
+    {
+      src_rect.w = w * 4;
+      src_rect.h = h * 4;
+    }
+    else
+    {
+      src_rect.w = button->image_rect.w;
+      src_rect.h = button->image_rect.h;
+    }
+    
+    printf("Button Texture   %d, (%d, %d) (%d, %d)\n", button->no, src_rect.x, src_rect.y, src_rect.w, src_rect.h);
+
+    std::string filename = "button_" + std::to_string(button->no) + ".bmp";
 
     button->anim[0] = new AnimationInfo();
     button->anim[0]->num_of_cells = 1;
@@ -4187,8 +4223,22 @@ int ONScripter::btnCommand()
     button->anim[0]->pos.x = button->image_rect.x;
     button->anim[0]->pos.y = button->image_rect.y;
     if (btndef_info.image_surface) {
-        button->anim[0]->allocImage( button->image_rect.w, button->image_rect.h );
-        button->anim[0]->copySurface( btndef_info.image_surface, &src_rect );
+        if (mUpscaledTextures && button->image_rect.w > 0 &&  button->image_rect.h > 0)
+        {
+          auto temp = SDL_CreateRGBSurface(SDL_SWSURFACE, src_rect.w, src_rect.h, BPP, RMASK, GMASK, BMASK, AMASK);
+          SDL_BlitSurface(btndef_info.image_surface, &src_rect, temp, nullptr);
+          button->anim[0]->allocImage( button->image_rect.w, button->image_rect.h );
+          ons_gfx::resizeSurface(temp, button->anim[0]->image_surface, 1);
+
+
+          //SDL_SaveBMP(temp, filename.c_str());
+          SDL_FreeSurface(temp);
+        }
+        else
+        {
+          button->anim[0]->allocImage( button->image_rect.w, button->image_rect.h );
+          button->anim[0]->copySurface( btndef_info.image_surface, &src_rect );
+        }
     }
 
     root_button_link.insert( button );

@@ -260,7 +260,7 @@ SDL_Surface *ONScripter::createSurfaceFromFile(char *filename, int *location)
       if (std::filesystem::exists(potentialReplacement.replace_extension(".png")))
         potentialReplacement = potentialReplacement.replace_extension(".png");
       
-      if (std::filesystem::exists(potentialReplacement))
+      if (mUpscaledTextures && std::filesystem::exists(potentialReplacement))
       {
         FILE* fp = std::fopen(potentialReplacement.u8string().c_str(), "rb");
         if (fp) {

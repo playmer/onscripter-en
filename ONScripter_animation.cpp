@@ -285,7 +285,7 @@ void ONScripter::setupAnimationInfo( AnimationInfo *anim, Fontinfo *info )
             surface = anim->resize( surface, screen_ratio1, screen_ratio2, stretch_x, stretch_y );
 #else
         if (surface && (screen_ratio2 != screen_ratio1) && !disable_rescale_flag){
-            surface = anim->resize( surface, screen_ratio1, screen_ratio2 );
+            surface = anim->resize( this, surface, screen_ratio1, screen_ratio2 );
 #endif //RCA_SCALE
             did_resize = true;
         }

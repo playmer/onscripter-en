@@ -151,6 +151,7 @@ public:
     SDL_Renderer* mRenderer;
     SDL_Window* mWindow;
     SDL_mutex* mSmpegMutex;
+    bool mUpscaledTextures;
     static void SMpegDisplayCallback(void* data, SMPEG_Frame* frame);
     SDL_Surface* SDL_SetVideoMode(int width, int height, int bpp, bool fullscreen);
 
@@ -627,6 +628,7 @@ private:
     int display_mode;
     bool did_leavetext;
     int event_mode;
+    public:
     SDL_Surface *accumulation_surface; // Final image, i.e. picture_surface (+ text_window + text_surface)
     SDL_Surface *backup_surface; // Final image w/o (text_window + text_surface) used in leaveTextDisplayMode()
     SDL_Surface *screen_surface; // Text + Select_image + Tachi image + background
@@ -635,6 +637,7 @@ private:
     SDL_Surface *effect_tmp_surface; // Intermediate buffer for effect
     SDL_Surface *screenshot_surface; // Screenshot
     SDL_Surface *image_surface; // Reference for loadImage() - 32bpp
+    protected:
 
     unsigned char *tmp_image_buf;
     unsigned long tmp_image_buf_length;
