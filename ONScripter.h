@@ -112,8 +112,8 @@ public:
       int windowResolutionX, windowResolutionY;
       SDL_GetWindowSize(mWindow, &windowResolutionX, &windowResolutionY);
 
-      float scaleHeight = windowResolutionY / screen_surface->h;
-      float scaleWidth = windowResolutionX / screen_surface->w;
+      float scaleHeight = windowResolutionY / (float)screen_surface->h;
+      float scaleWidth  = windowResolutionX / (float)screen_surface->w;
       float scale = std::min(scaleHeight, scaleWidth);
   
       SDL_Rect dstRect = {};

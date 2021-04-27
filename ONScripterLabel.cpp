@@ -95,8 +95,8 @@ void ONScripter::WarpMouse(int x, int y)
   int windowResolutionX, windowResolutionY;
   SDL_GetWindowSize(mWindow, &windowResolutionX, &windowResolutionY);
 
-  float scaleHeight = windowResolutionY / screen_surface->h;
-  float scaleWidth = windowResolutionX / screen_surface->w;
+  float scaleHeight = windowResolutionY / (float)screen_surface->h;
+  float scaleWidth  = windowResolutionX / (float)screen_surface->w;
   float scale = std::min(scaleHeight, scaleWidth);
   
   SDL_Rect dstRect = {};
@@ -128,8 +128,11 @@ void ONScripter::UpdateScreen(SDL_Rect dst_rect)
   SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, 255);
   SDL_RenderClear(mRenderer);
 
+  bool doIt = false;
+  if (doIt)
+    SDL_SaveBMP(accumulation_surface, "Test.bmp");
+
   auto texture = SDL_CreateTextureFromSurface(mRenderer, accumulation_surface);
-  //auto texture = SDL_CreateTextureFromSurface(mRenderer, screen_surface);
   
   Uint32 format;
   int imageResolutionX, imageResolutionY, access;
@@ -138,8 +141,8 @@ void ONScripter::UpdateScreen(SDL_Rect dst_rect)
   int windowResolutionX, windowResolutionY;
   SDL_GetWindowSize(mWindow, &windowResolutionX, &windowResolutionY);
 
-  float scaleHeight = windowResolutionY / imageResolutionY;
-  float scaleWidth = windowResolutionX / imageResolutionX;
+  float scaleHeight = windowResolutionY / (float)imageResolutionY;
+  float scaleWidth  = windowResolutionX / (float)imageResolutionX;
   float scale = std::min(scaleHeight, scaleWidth);
   
   SDL_Rect dstRect;
@@ -453,7 +456,7 @@ void ONScripter::initSDL()
         printf( "Initialize JOYSTICK\n");
 #endif
     
-    SDL_CreateWindowAndRenderer(800, 600, 0, &mWindow, &mRenderer);
+    SDL_CreateWindowAndRenderer(800, 600, SDL_WINDOW_RESIZABLE, &mWindow, &mRenderer);
 
     /* ---------------------------------------- */
     /* Initialize SDL */

@@ -1711,6 +1711,18 @@ void ONScripter::runEventLoop()
             
           case SDL_WINDOWEVENT_LEAVE: break;
           case SDL_WINDOWEVENT_FOCUS_LOST: break;
+          case SDL_WINDOWEVENT: 
+          {   
+              if (event.window.event == SDL_WINDOWEVENT_RESIZED
+                ||event.window.event == SDL_WINDOWEVENT_MOVED)
+              {
+                SDL_Rect rect = {0, 0, screen_width, screen_height};
+                refreshSurface( accumulation_surface, &rect, refreshMode() );
+                SDL_BlitSurface( accumulation_surface, &rect, screen_surface, &rect );
+                UpdateScreen(rect);
+              }
+              break;
+          }
           // FIXME:
           //case SDL_VIDEOEXPOSE:
           //    SDL_UpdateRect( screen_surface, 0, 0, screen_width, screen_height );
