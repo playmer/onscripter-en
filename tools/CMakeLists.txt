@@ -2,6 +2,7 @@ add_executable(arcdec)
 
 target_include_directories(arcdec PRIVATE ../)
 
+target_compile_features(arcdec PUBLIC cxx_std_17)
 target_sources(arcdec 
 PRIVATE 
     arcdec.cpp

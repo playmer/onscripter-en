@@ -4173,8 +4173,8 @@ int ONScripter::btnCommand()
     button->image_rect.w = StretchPosX(w);
     button->image_rect.h = StretchPosY(h);
 
-    printf("Button           %d, (%d, %d) (%d, %d)\n", button->no, x, y, w, h);    
-    printf("Stretched Button %d, (%d, %d) (%d, %d)\n", button->no, button->image_rect.x, button->image_rect.y, button->image_rect.w, button->image_rect.h);
+    //printf("Button           %d, (%d, %d) (%d, %d)\n", button->no, x, y, w, h);    
+    //printf("Stretched Button %d, (%d, %d) (%d, %d)\n", button->no, button->image_rect.x, button->image_rect.y, button->image_rect.w, button->image_rect.h);
 
     button->select_rect = button->image_rect;
     
@@ -4213,7 +4213,7 @@ int ONScripter::btnCommand()
       src_rect.h = button->image_rect.h;
     }
     
-    printf("Button Texture   %d, (%d, %d) (%d, %d)\n", button->no, src_rect.x, src_rect.y, src_rect.w, src_rect.h);
+    //printf("Button Texture   %d, (%d, %d) (%d, %d)\n", button->no, src_rect.x, src_rect.y, src_rect.w, src_rect.h);
 
     std::string filename = "button_" + std::to_string(button->no) + ".bmp";
 

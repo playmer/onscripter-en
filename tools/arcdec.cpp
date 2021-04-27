@@ -29,6 +29,9 @@
 
 // Modified by Mion, December 2009, to consolidate SAR/NSA/ARC extract code
 
+#include <filesystem>
+#include <iostream>
+
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
@@ -41,78 +44,157 @@
 #include <windows.h>
 #endif
 
-#ifdef SAR
 #include "SarReader.h"
-typedef SarReader reader;
-#else
 #include "NsaReader.h"
-typedef NsaReader reader;
-#endif
 
-int main( int argc, char **argv )
+//int main( int argc, char **argv )
+//{
+//    DirPaths path;
+//    reader reader.path);
+//    unsigned long length, buffer_length = 0;
+//    unsigned char *buffer = NULL;
+//    char file_name[512], dir_name[256], *outdir=NULL;
+//    unsigned int i, j, count;
+//#if defined(NS2)
+//    int archiveName = BaseReader::ARCHIVE_TYPE_NS2;
+//#elif defined(NSA)
+//    int archiveName = BaseReader::ARCHIVE_TYPE_NSA;
+//#endif
+//#ifndef SAR
+//    int nsa_offset = 0;
+//#endif
+//    FILE *fp;
+//    struct stat file_stat;
+//
+//    argc--; // skip command name
+//    argv++;
+//    while ( argc > 1 ){
+//        if ( !strcmp( argv[0], "-o" ) ){
+//            argc--;
+//            argv++;
+//            outdir = argv[0];
+//        }
+//#ifndef SAR
+//        else if ( !strcmp( argv[0], "-offset" ) ){
+//            argc--;
+//            argv++;
+//            nsa_offset = atoi(argv[0]);
+//        }
+//#endif
+//        argc--;
+//        argv++;
+//    }
+//    if ( argc != 1 ){
+//#if defined(SAR)
+//        fprintf( stderr, "Usage: sardec [-o out_dir] arc_file\n");
+//#elif defined(NS2)
+//        fprintf( stderr, "Usage: ns2dec [-offset num] [-o out_dir] arc_file\n");
+//#else
+//        fprintf( stderr, "Usage: nsadec [-offset num] [-o out_dir] arc_file\n");
+//#endif
+//        exit(-1);
+//    }
+//
+//#ifdef SAR
+//    if (cSR.openForConvert( argv[0] ) != 0){
+//#else
+//    if (cSR.openForConvert( argv[0], archiveName, nsa_offset ) != 0){
+//#endif
+//        fprintf( stderr, "can't open file %s\n", argv[0] );
+//        exit(-1);
+//    }
+//    count = cSR.getNumFiles();
+//
+//    reader::FileInfo sFI;
+//
+//    for ( i=0 ; i<count ; i++ ){
+//        sFI = cSR.getFileByIndex( i );
+//        
+//        length = cSR.getFileLength( sFI.name );
+//
+//        if ( length > buffer_length ){
+//            if ( buffer ) delete[] buffer;
+//            buffer = new unsigned char[length];
+//            buffer_length = length;
+//        }
+//        if (length > 0){
+//            unsigned int len;
+//            if ( (len = cSR.getFile( sFI.name, buffer )) != length ){
+//                fprintf( stderr, "file %s is not fully retrieved %d %lu\n", sFI.name, len, length );
+//                length = sFI.length;
+//                continue;
+//            }
+//        } else
+//            fprintf( stderr, "file %s is empty\n", sFI.name );
+//        printf( "extracting %d of %d, %lu bytes (%s)\n", i+1, count, length, sFI.name );
+//        
+//        if ( outdir )
+//            sprintf( file_name, "%s\\%s", outdir, sFI.name );
+//        else
+//            sprintf( file_name, "%s", sFI.name );
+//        for ( j=0 ; j<strlen(file_name) ; j++ ){
+//            file_name[j] = tolower(file_name[j]); //Mion: easier on the eyes
+//            if ( file_name[j] == '\\' ){
+//                file_name[j] = '/';
+//                strncpy( dir_name, file_name, j );
+//                dir_name[j] = '\0';
+//
+//                /* If the directory doesn't exist, create it */
+//                if ( stat ( dir_name, &file_stat ) == -1 && errno == ENOENT )
+//                    mkdir(dir_name
+//#ifndef WIN32
+//                          , 0755
+//#endif
+//                         );
+//            }
+//        }
+//    
+//        if ( (fp = fopen( file_name, "wb" ) )){
+//            printf("    opening %s\n", file_name );
+//            fwrite( buffer, 1, length, fp );
+//            fclose(fp);
+//        }
+//        else{
+//            printf("    opening %s ... failed\n", file_name );
+//        }
+//    }
+//    
+//    if ( buffer ) delete[] buffer;
+//    
+//    exit(0);
+//}
+
+enum class ArchiveType
+{
+  fSar,
+  fNsa
+};
+
+void unwrapNsa(const char* archiveName, const char* outputDir)
 {
     DirPaths path;
-    reader cSR(path);
+    NsaReader reader(path);
     unsigned long length, buffer_length = 0;
     unsigned char *buffer = NULL;
-    char file_name[512], dir_name[256], *outdir=NULL;
+    char file_name[512], dir_name[256];
     unsigned int i, j, count;
-#if defined(NS2)
-    int archive_type = BaseReader::ARCHIVE_TYPE_NS2;
-#elif defined(NSA)
-    int archive_type = BaseReader::ARCHIVE_TYPE_NSA;
-#endif
-#ifndef SAR
+
     int nsa_offset = 0;
-#endif
     FILE *fp;
     struct stat file_stat;
-
-    argc--; // skip command name
-    argv++;
-    while ( argc > 1 ){
-        if ( !strcmp( argv[0], "-o" ) ){
-            argc--;
-            argv++;
-            outdir = argv[0];
-        }
-#ifndef SAR
-        else if ( !strcmp( argv[0], "-offset" ) ){
-            argc--;
-            argv++;
-            nsa_offset = atoi(argv[0]);
-        }
-#endif
-        argc--;
-        argv++;
+    
+    if (reader.openForConvert( archiveName, BaseReader::ARCHIVE_TYPE_NSA, nsa_offset ) != 0){
+        fprintf( stderr, "can't open file %s\n", archiveName );
+        return;
     }
-    if ( argc != 1 ){
-#if defined(SAR)
-        fprintf( stderr, "Usage: sardec [-o out_dir] arc_file\n");
-#elif defined(NS2)
-        fprintf( stderr, "Usage: ns2dec [-offset num] [-o out_dir] arc_file\n");
-#else
-        fprintf( stderr, "Usage: nsadec [-offset num] [-o out_dir] arc_file\n");
-#endif
-        exit(-1);
-    }
+    count = reader.getNumFiles();
 
-#ifdef SAR
-    if (cSR.openForConvert( argv[0] ) != 0){
-#else
-    if (cSR.openForConvert( argv[0], archive_type, nsa_offset ) != 0){
-#endif
-        fprintf( stderr, "can't open file %s\n", argv[0] );
-        exit(-1);
-    }
-    count = cSR.getNumFiles();
-
-    reader::FileInfo sFI;
+    NsaReader::FileInfo sFI;
 
     for ( i=0 ; i<count ; i++ ){
-        sFI = cSR.getFileByIndex( i );
+        sFI = reader.getFileByIndex( i );
         
-        length = cSR.getFileLength( sFI.name );
+        length = reader.getFileLength( sFI.name );
 
         if ( length > buffer_length ){
             if ( buffer ) delete[] buffer;
@@ -121,7 +203,7 @@ int main( int argc, char **argv )
         }
         if (length > 0){
             unsigned int len;
-            if ( (len = cSR.getFile( sFI.name, buffer )) != length ){
+            if ( (len = reader.getFile( sFI.name, buffer )) != length ){
                 fprintf( stderr, "file %s is not fully retrieved %d %lu\n", sFI.name, len, length );
                 length = sFI.length;
                 continue;
@@ -130,8 +212,8 @@ int main( int argc, char **argv )
             fprintf( stderr, "file %s is empty\n", sFI.name );
         printf( "extracting %d of %d, %lu bytes (%s)\n", i+1, count, length, sFI.name );
         
-        if ( outdir )
-            sprintf( file_name, "%s\\%s", outdir, sFI.name );
+        if ( outputDir )
+            sprintf( file_name, "%s\\%s", outputDir, sFI.name );
         else
             sprintf( file_name, "%s", sFI.name );
         for ( j=0 ; j<strlen(file_name) ; j++ ){
@@ -162,6 +244,106 @@ int main( int argc, char **argv )
     }
     
     if ( buffer ) delete[] buffer;
+}
+
+void unwrapSar(const char* archiveName, const char* outputDir)
+{
+    DirPaths path;
+    SarReader reader(path);;
+    unsigned long length, buffer_length = 0;
+    unsigned char *buffer = NULL;
+    char file_name[512], dir_name[256];
+    unsigned int i, j, count;
+
+    FILE *fp;
+    struct stat file_stat;
     
-    exit(0);
+    int ret = 0;
+
+    if (reader.openForConvert(archiveName) != 0){
+        fprintf( stderr, "can't open file %s\n", archiveName );
+        return;
+    }
+    count = reader.getNumFiles();
+
+    SarReader::FileInfo sFI;
+
+    for ( i=0 ; i<count ; i++ ){
+        sFI = reader.getFileByIndex( i );
+        
+        length = reader.getFileLength( sFI.name );
+
+        if ( length > buffer_length ){
+            if ( buffer ) delete[] buffer;
+            buffer = new unsigned char[length];
+            buffer_length = length;
+        }
+        if (length > 0){
+            unsigned int len;
+            if ( (len = reader.getFile( sFI.name, buffer )) != length ){
+                fprintf( stderr, "file %s is not fully retrieved %d %lu\n", sFI.name, len, length );
+                length = sFI.length;
+                continue;
+            }
+        } else
+            fprintf( stderr, "file %s is empty\n", sFI.name );
+        printf( "extracting %d of %d, %lu bytes (%s)\n", i+1, count, length, sFI.name );
+        
+        if ( outputDir )
+            sprintf( file_name, "%s\\%s", outputDir, sFI.name );
+        else
+            sprintf( file_name, "%s", sFI.name );
+        for ( j=0 ; j<strlen(file_name) ; j++ ){
+            file_name[j] = tolower(file_name[j]); //Mion: easier on the eyes
+            if ( file_name[j] == '\\' ){
+                file_name[j] = '/';
+                strncpy( dir_name, file_name, j );
+                dir_name[j] = '\0';
+
+                /* If the directory doesn't exist, create it */
+                if ( stat ( dir_name, &file_stat ) == -1 && errno == ENOENT )
+                    mkdir(dir_name
+#ifndef WIN32
+                          , 0755
+#endif
+                         );
+            }
+        }
+    
+        if ( (fp = fopen( file_name, "wb" ) )){
+            printf("    opening %s\n", file_name );
+            fwrite( buffer, 1, length, fp );
+            fclose(fp);
+        }
+        else{
+            printf("    opening %s ... failed\n", file_name );
+        }
+    }
+    
+    if ( buffer ) delete[] buffer;
+}
+
+int main()
+{
+    namespace fs = std::filesystem;
+    for (auto& p : fs::directory_iterator("."))
+    {
+      auto path = p;
+      if (path.path().extension() == ".SAR"
+        || path.path().extension() == ".sar")
+      {
+        std::cout << p.path() << '\n';
+        auto outputDir = p.path();
+        outputDir += "_output";
+        unwrapSar(p.path().u8string().c_str(), outputDir.u8string().c_str());
+      }
+      else if (path.path().extension() == ".NSA"
+        || path.path().extension() == ".nsa")
+      {
+        std::cout << p.path() << '\n';
+        auto outputDir = p.path();
+        outputDir += "_output";
+        unwrapNsa(p.path().u8string().c_str(), outputDir.u8string().c_str());
+      }
+    }
 }
