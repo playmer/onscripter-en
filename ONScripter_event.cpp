@@ -1568,11 +1568,11 @@ void ONScripter::runEventLoop()
               case SDL_CONTROLLER_AXIS_TRIGGERRIGHT:
                 break;
             }
-
+            
             if (sqrt((right.first * right.first) + (right.second * right.second)) > 0.5)
-              WarpMouse(640, 480);
+              WarpMouse(screen_surface->w, screen_surface->h);
             else if (sqrt((left.first * left.first) + (left.second * left.second)) > 0.5)
-              WarpMouse(640, 480);
+              WarpMouse(screen_surface->w, screen_surface->h);
             break;
           }
 
