@@ -421,26 +421,26 @@ void ONScripter::flushEventSub( SDL_Event &event )
     }
     else if ( event.type == ONS_WAVE_EVENT ){ // for processing btntime2 and automode correctly
         int ch = event.user.code;
-        if ( wave_sample[ch] ){
-            if ( (ch >= ONS_MIX_CHANNELS) || (ch == 0) ||
-                 !channel_preloaded[ch] ) {
-                //don't free preloaded channels, _except_:
-                //always free voice channel, for now - could be
-                //messy for bgmdownmode and/or voice-waiting FIXME
-                Mix_FreeChunk( wave_sample[ch] );
-                wave_sample[ch] = NULL;
-            }
-            if (ch == MIX_LOOPBGM_CHANNEL0 &&
-                loop_bgm_name[1] &&
-                wave_sample[MIX_LOOPBGM_CHANNEL1])
-                Mix_PlayChannel(MIX_LOOPBGM_CHANNEL1,
-                                wave_sample[MIX_LOOPBGM_CHANNEL1], -1);
-            if (ch == 0) {
-                channel_preloaded[ch] = false;
-                if (bgmdownmode_flag)
-                    setCurMusicVolume( music_volume );
-            }
-        }
+        //if ( wave_sample[ch] ){
+        //    if ( (ch >= ONS_MIX_CHANNELS) || (ch == 0) ||
+        //         !channel_preloaded[ch] ) {
+        //        //don't free preloaded channels, _except_:
+        //        //always free voice channel, for now - could be
+        //        //messy for bgmdownmode and/or voice-waiting FIXME
+        //        Mix_FreeChunk( wave_sample[ch] );
+        //        wave_sample[ch] = NULL;
+        //    }
+        //    if (ch == MIX_LOOPBGM_CHANNEL0 &&
+        //        loop_bgm_name[1] &&
+        //        wave_sample[MIX_LOOPBGM_CHANNEL1])
+        //        Mix_PlayChannel(MIX_LOOPBGM_CHANNEL1,
+        //                        wave_sample[MIX_LOOPBGM_CHANNEL1], -1);
+        //    if (ch == 0) {
+        //        channel_preloaded[ch] = false;
+        //        if (bgmdownmode_flag)
+        //            setCurMusicVolume( music_volume );
+        //    }
+        //}
     }
 }
 
@@ -1674,9 +1674,9 @@ void ONScripter::runEventLoop()
                 voice_just_ended = true;
             event_mode &= ~WAIT_VOICE_MODE;
           case ONS_BREAK_EVENT:
-            if ((event_mode & WAIT_VOICE_MODE) && wave_sample[0]){
-                break;
-            }
+            //if ((event_mode & WAIT_VOICE_MODE) && wave_sample[0]){
+            //    break;
+            //}
             if (voice_just_ended) {
                 clearTimer(break_id);
                 if (automode_flag && (automode_time > 0)) {

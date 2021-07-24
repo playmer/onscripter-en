@@ -30,6 +30,8 @@
 #include "ONScripter.h"
 #include "version.h"
 
+#include "soloud.h"
+
 #include <cstdio>
 
 #define CFG_FILE "ons.cfg"
@@ -186,6 +188,18 @@ static void parseOptions(int argc, char **argv, ONScripter &ons, bool &hasArchiv
             }
             else if ( !strcmp( argv[0]+1, "-japanese-menu" ) ){
                 ons.setJapaneseMenu();
+            }
+            else if ( !strcmp( argv[0]+1, "-audio-backend-WINMM" ) ){
+                ons.SetSoundEngineBackend(SoLoud::Soloud::BACKENDS::WINMM);
+            }
+            else if ( !strcmp( argv[0]+1, "-audio-backend-XAUDIO2" ) ){
+                ons.SetSoundEngineBackend(SoLoud::Soloud::BACKENDS::XAUDIO2);
+            }
+            else if ( !strcmp( argv[0]+1, "-audio-backend-WASAPI" ) ){
+                ons.SetSoundEngineBackend(SoLoud::Soloud::BACKENDS::WASAPI);
+            }
+            else if ( !strcmp( argv[0]+1, "-no-upscaled-textures" ) ){
+                ons.mUpscaledTextures = false;
             }
             else if ( !strcmp( argv[0]+1, "r" ) || !strcmp( argv[0]+1, "-root" ) ){
                 hasArchivePath = true;

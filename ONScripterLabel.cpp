@@ -442,7 +442,7 @@ void ONScripter::initSDL()
       }
     }
 
-    SDL_AudioInit("directsound");
+    //SDL_AudioInit("directsound");
 
 #ifdef ONSCRIPTER_CDAUDIO
     if( cdaudio_flag && SDL_InitSubSystem( SDL_INIT_CDROM ) < 0 ){
@@ -676,30 +676,30 @@ void ONScripter::initSDL()
     openAudio();
 }
 
-void ONScripter::openAudio(int freq, Uint16 format, int channels)
+void ONScripter::openAudio(/*int freq, Uint16 format, int channels*/)
 {
-    if ( Mix_OpenAudio( freq, format, channels, audiobuffer_size ) < 0 ){
-        errorAndCont("Couldn't open audio device!", SDL_GetError(), "Init Error", true);
-        audio_open_flag = false;
-    }
-    else{
-        int freq;
-        Uint16 format;
-        int channels;
-
-        Mix_QuerySpec( &freq, &format, &channels);
-        //printf("Audio: %d Hz %d bit %s\n", freq,
-        //       (format&0xFF),
-        //       (channels > 1) ? "stereo" : "mono");
-        audio_format.format = format;
-        audio_format.freq = freq;
-        audio_format.channels = channels;
-
+    //if ( Mix_OpenAudio( freq, format, channels, audiobuffer_size ) < 0 ){
+    //    errorAndCont("Couldn't open audio device!", SDL_GetError(), "Init Error", true);
+    //    audio_open_flag = false;
+    //}
+    //else{
+    //    int freq;
+    //    Uint16 format;
+    //    int channels;
+    //
+    //    Mix_QuerySpec( &freq, &format, &channels);
+    //    //printf("Audio: %d Hz %d bit %s\n", freq,
+    //    //       (format&0xFF),
+    //    //       (channels > 1) ? "stereo" : "mono");
+    //    audio_format.format = format;
+    //    audio_format.freq = freq;
+    //    audio_format.channels = channels;
+    //
         audio_open_flag = true;
-
-        Mix_AllocateChannels( ONS_MIX_CHANNELS+ONS_MIX_EXTRA_CHANNELS );
-        Mix_ChannelFinished( waveCallback );
-    }
+    //
+    //    Mix_AllocateChannels( ONS_MIX_CHANNELS+ONS_MIX_EXTRA_CHANNELS );
+    //    Mix_ChannelFinished( waveCallback );
+    //}
 }
 
 int ONScripter::ExpandPos(int val) {
@@ -720,30 +720,59 @@ int ONScripter::StretchPosY(int val) {
 
 ONScripter::ONScripter()
 //Using an initialization list to make sure pointers start out NULL
-: default_font(NULL), registry_file(NULL), dll_file(NULL),
-  getret_str(NULL), key_exe_file(NULL), trap_dest(NULL),
-  wm_title_string(NULL), wm_icon_string(NULL),
-  accumulation_surface(NULL), backup_surface(NULL),
-  effect_dst_surface(NULL), effect_src_surface(NULL), effect_tmp_surface(NULL),
-  screenshot_surface(NULL), image_surface(NULL), tmp_image_buf(NULL),
-  current_button_link(NULL), shelter_button_link(NULL),
-  sprite_info(NULL), sprite2_info(NULL),
-  font_file(NULL), root_glyph_cache(NULL),
-  string_buffer_breaks(NULL), string_buffer_margins(NULL),
-  sin_table(NULL), cos_table(NULL), whirl_table(NULL),
-  breakup_cells(NULL), breakup_cellforms(NULL), breakup_mask(NULL),
-  shelter_select_link(NULL), default_cdrom_drive(NULL),
-  wave_file_name(NULL), seqmusic_file_name(NULL),
-#ifdef ONSCRIPTER_CDAUDIO
-  cdrom_info(NULL),
-#endif
-  music_file_name(NULL), music_buffer(NULL), mp3_sample(NULL),
-  music_info(NULL), music_cmd(NULL), seqmusic_cmd(NULL),
-  async_movie(NULL), movie_buffer(NULL), async_movie_surface(NULL),
-  surround_rects(NULL),
-  text_font(NULL), cached_page(NULL), system_menu_title(NULL)
+  : default_font(NULL)
+  , registry_file(NULL)
+  , dll_file(NULL)
+  , getret_str(NULL)
+  , key_exe_file(NULL)
+  , trap_dest(NULL)
+  , wm_title_string(NULL)
+  , wm_icon_string(NULL)
+  , accumulation_surface(NULL)
+  , backup_surface(NULL)
+  , effect_dst_surface(NULL)
+  , effect_src_surface(NULL)
+  , effect_tmp_surface(NULL)
+  , screenshot_surface(NULL)
+  , image_surface(NULL)
+  , tmp_image_buf(NULL)
+  , current_button_link(NULL)
+  , shelter_button_link(NULL)
+  , sprite_info(NULL)
+  , sprite2_info(NULL)
+  , font_file(NULL)
+  , root_glyph_cache(NULL)
+  , string_buffer_breaks(NULL)
+  , string_buffer_margins(NULL)
+  , sin_table(NULL)
+  , cos_table(NULL)
+  , whirl_table(NULL)
+  , breakup_cells(NULL)
+  , breakup_cellforms(NULL)
+  , breakup_mask(NULL)
+  , shelter_select_link(NULL)
+  , default_cdrom_drive(NULL)
+  , wave_file_name(NULL)
+  , seqmusic_file_name(NULL)
+  #ifdef ONSCRIPTER_CDAUDIO
+  , cdrom_info(NULL)
+  #endif
+  , music_file_name(NULL)
+  , music_buffer(NULL)
+  , mp3_sample(NULL)
+  //, music_info(NULL)
+  , music_cmd(NULL)
+  , seqmusic_cmd(NULL)
+  , async_movie(NULL)
+  , movie_buffer(NULL)
+  , async_movie_surface(NULL)
+  , surround_rects(NULL)
+  , text_font(NULL)
+  , cached_page(NULL)
+  , system_menu_title(NULL)
 {
     //first initialize *everything* (static) to base values
+    mSoundBackEnd = SoLoud::Soloud::BACKENDS::WASAPI;
 
     resetFlags();
     resetFlagsSub();
@@ -811,8 +840,8 @@ ONScripter::ONScripter()
         channelvolumes[i] = DEFAULT_VOLUME;
         channel_preloaded[i] = false;
     }
-    for (i=0 ; i<ONS_MIX_CHANNELS+ONS_MIX_EXTRA_CHANNELS ; i++)
-        wave_sample[i] = NULL;
+    //for (i=0 ; i<ONS_MIX_CHANNELS+ONS_MIX_EXTRA_CHANNELS ; i++)
+    //    wave_sample[i] = NULL;
 
     fileversion = SAVEFILE_VERSION_MAJOR*100 + SAVEFILE_VERSION_MINOR;
 
@@ -2503,7 +2532,7 @@ void ONScripter::loadEnvData()
             bgmdownmode_flag = true;
             
             //SDL_LockMutex(mMusicMutex);
-            music_struct.voice_sample = &wave_sample[0];
+            //music_struct.voice_sample = &wave_sample[0];
             //SDL_UnlockMutex(mMusicMutex);
         }
         readStr( &savedir );

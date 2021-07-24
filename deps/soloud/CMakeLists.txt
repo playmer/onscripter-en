@@ -2,7 +2,7 @@ add_library(soloud STATIC)
 
 #target_compile_definitions(soloud PUBLIC -DWITH_SDL2)
 
-target_compile_definitions(soloud PUBLIC -DWITH_WASAPI)
+target_compile_definitions(soloud PUBLIC -DWITH_WASAPI -DWITH_WINMM -DWITH_XAUDIO2)
 
 
 
@@ -111,8 +111,8 @@ PRIVATE
     #repo/src/backend/sdl_static/soloud_sdl_static.cpp
     #repo/src/backend/vita_homebrew/soloud_vita_homebrew.cpp
     repo/src/backend/wasapi/soloud_wasapi.cpp
-    #repo/src/backend/winmm/soloud_winmm.cpp
-    #repo/src/backend/xaudio2/soloud_xaudio2.cpp
+    repo/src/backend/winmm/soloud_winmm.cpp
+    repo/src/backend/xaudio2/soloud_xaudio2.cpp
     repo/src/c_api/soloud_c.cpp
     repo/src/core/soloud.cpp
     repo/src/core/soloud_audiosource.cpp

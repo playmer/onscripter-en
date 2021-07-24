@@ -50,7 +50,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
-#include <SDL_mixer.h>
+//#include <SDL_mixer.h>
 
 #include "soloud.h"
 #include "soloud_wav.h"
@@ -486,7 +486,7 @@ protected:
     bool waitEvent(int count);
     void trapHandler();
     void initSDL();
-    void openAudio(int freq=DEFAULT_AUDIO_RATE, Uint16 format=MIX_DEFAULT_FORMAT, int channels=MIX_DEFAULT_CHANNELS);
+    void openAudio(/*int freq=DEFAULT_AUDIO_RATE, Uint16 format=MIX_DEFAULT_FORMAT, int channels=MIX_DEFAULT_CHANNELS*/);
 
 private:
     // ----------------------------------------
@@ -1032,12 +1032,12 @@ private:
     Uint32 mp3fade_start;
     Uint32 mp3fadeout_duration;
     Uint32 mp3fadein_duration;
-    Mix_Music *music_info;
+    //Mix_Music *music_info;
     char *loop_bgm_name[2];
 
     int channelvolumes[ONS_MIX_CHANNELS]; //insani's addition
     bool channel_preloaded[ONS_MIX_CHANNELS]; //seems we need to track this...
-    Mix_Chunk *wave_sample[ONS_MIX_CHANNELS+ONS_MIX_EXTRA_CHANNELS];
+    //Mix_Chunk *wave_sample[ONS_MIX_CHANNELS+ONS_MIX_EXTRA_CHANNELS];
 
     char *music_cmd;
     char *seqmusic_cmd;
@@ -1049,9 +1049,16 @@ private:
       std::unordered_map<int, SoLoud::handle> mHandles;
       std::unordered_map<std::string, SoLoud::Wav> mSamples;
     };
+
+    void SetSoundEngineBackend(int aBackEnd)
+    {
+      mSoundBackEnd = aBackEnd;
+    }
+
     protected:
 
     SoundEngine mSoundEngine;
+    int mSoundBackEnd;
 
     int playSound(const char *filename, int format, bool loop_flag, int channel=0);
     void playCDAudio();

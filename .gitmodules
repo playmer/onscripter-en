@@ -15,4 +15,4 @@
 	url = https://github.com/freetype/freetype.git
 [submodule "deps/soloud/repo"]
 	path = deps/soloud/repo
-	url = https://github.com/jarikomppa/soloud.git
+	url = https://github.com/playmer/soloud.git

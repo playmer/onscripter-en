@@ -142,7 +142,7 @@ int ONScripter::playSound(const char *filename, int format, bool loop_flag, int 
     if (gFirstTime == false)
     {
       gFirstTime = true;
-      mSoundEngine.mSoLoud.init();
+      mSoundEngine.mSoLoud.init(SoLoud::Soloud::FLAGS::CLIP_ROUNDOFF, mSoundBackEnd);
     }
 
     if (PlayOnSoundEngine(mSoundEngine, filename, loop_flag, channel))
@@ -231,7 +231,7 @@ int ONScripter::playExternalMusic(bool loop_flag)
         snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
                  "error in sequenced music file %s", music_filename );
         puts(script_h.errbuf);
-        errorAndCont(script_h.errbuf, Mix_GetError());
+        errorAndCont(script_h.errbuf, nullptr /*Mix_GetError()*/);
         return -1;
     }
 
@@ -253,7 +253,7 @@ int ONScripter::playSequencedMusic(bool loop_flag)
         snprintf(script_h.errbuf, MAX_ERRBUF_LEN,
                  "error in sequenced music file %s", seqmusic_filename );
         puts(script_h.errbuf);
-        errorAndCont(script_h.errbuf, Mix_GetError());
+        errorAndCont(script_h.errbuf, nullptr /*Mix_GetError()*/);
         return -1;
     }
 
@@ -266,12 +266,12 @@ int ONScripter::playSequencedMusic(bool loop_flag)
 
 int ONScripter::playingMusic()
 {
-    if (audio_open_flag && 
-        ( (Mix_GetMusicHookData() != NULL) ||
-          (Mix_Playing(MIX_BGM_CHANNEL) == 1) ||
-          (Mix_PlayingMusic() == 1) ))
-        return 1;
-    else
+    //if (audio_open_flag && 
+    //    ( (Mix_GetMusicHookData() != NULL) ||
+    //      (Mix_Playing(MIX_BGM_CHANNEL) == 1) ||
+    //      (Mix_PlayingMusic() == 1) ))
+    //    return 1;
+    //else
         return 0;
 }
 
@@ -368,8 +368,8 @@ int ONScripter::playMPEG( const char *filename, bool async_flag, bool use_pos, i
                 if ((wanted.format != audio_format.format) ||
                     (wanted.freq != audio_format.freq)) {
                     different_spec = true;
-                    Mix_CloseAudio();
-                    openAudio(wanted.freq, wanted.format, wanted.channels);
+                    //Mix_CloseAudio();
+                    //openAudio(wanted.freq, wanted.format, wanted.channels);
                     if (!audio_open_flag) {
                         // didn't work, use the old settings
                         openAudio();
@@ -410,7 +410,7 @@ int ONScripter::playMPEG( const char *filename, bool async_flag, bool use_pos, i
 
         if (info.has_audio){
             SMPEG_setvolume( mpeg_sample, !volume_on_flag? 0 : music_volume );
-            Mix_HookMusic( mp3callback, mpeg_sample );
+            //Mix_HookMusic( mp3callback, mpeg_sample );
         }
 
         surround_rects = new SDL_Rect[4];
@@ -518,7 +518,7 @@ int ONScripter::playMPEG( const char *filename, bool async_flag, bool use_pos, i
 
         if (different_spec) {
             //restart mixer with the old audio spec
-            Mix_CloseAudio();
+            //Mix_CloseAudio();
             openAudio();
         }
     }
@@ -567,7 +567,7 @@ void ONScripter::stopMovie(SMPEG *mpeg)
         SMPEG_getinfo(mpeg, &info);
         SMPEG_stop( mpeg );
         if (info.has_audio){
-            Mix_HookMusic( NULL, NULL );
+            //Mix_HookMusic( NULL, NULL );
         }
         SMPEG_delete( mpeg );
 
@@ -601,40 +601,40 @@ void ONScripter::stopDWAVE( int channel )
     if (channel < 0) channel = 0;
     else if (channel >= ONS_MIX_CHANNELS) channel = ONS_MIX_CHANNELS-1;
 
-    if ( wave_sample[channel] ){
-        Mix_Pause( channel );
-        if ( !channel_preloaded[channel] || channel == 0 ){
-            //don't free preloaded channels, _except_:
-            //always free voice channel, for now - could be
-            //messy for bgmdownmode and/or voice-waiting FIXME
-            Mix_FreeChunk( wave_sample[channel] );
-            wave_sample[channel] = NULL;
-            channel_preloaded[channel] = false;
-        }
-    }
+    //if ( wave_sample[channel] ){
+    //    Mix_Pause( channel );
+    //    if ( !channel_preloaded[channel] || channel == 0 ){
+    //        //don't free preloaded channels, _except_:
+    //        //always free voice channel, for now - could be
+    //        //messy for bgmdownmode and/or voice-waiting FIXME
+    //        Mix_FreeChunk( wave_sample[channel] );
+    //        wave_sample[channel] = NULL;
+    //        channel_preloaded[channel] = false;
+    //    }
+    //}
     if ((channel == 0) && bgmdownmode_flag)
         setCurMusicVolume( music_volume );
 }
 
 void ONScripter::stopAllDWAVE()
 {
-    if (!audio_open_flag) return;
-
-    for (int ch=0; ch<ONS_MIX_CHANNELS ; ch++) {
-        if ( wave_sample[ch] ){
-            Mix_Pause( ch );
-            if ( !channel_preloaded[ch] || ch == 0 ){
-                //always free voice channel sample, for now - could be
-                //messy for bgmdownmode and/or voice-waiting FIXME
-                Mix_FreeChunk( wave_sample[ch] );
-                wave_sample[ch] = NULL;
-            }
-        }
-    }
-    // just in case the bgm was turned down for the voice channel,
-    // set the bgm volume back to normal
-    if (bgmdownmode_flag)
-        setCurMusicVolume( music_volume );
+    //if (!audio_open_flag) return;
+    //
+    //for (int ch=0; ch<ONS_MIX_CHANNELS ; ch++) {
+    //    if ( wave_sample[ch] ){
+    //        Mix_Pause( ch );
+    //        if ( !channel_preloaded[ch] || ch == 0 ){
+    //            //always free voice channel sample, for now - could be
+    //            //messy for bgmdownmode and/or voice-waiting FIXME
+    //            Mix_FreeChunk( wave_sample[ch] );
+    //            wave_sample[ch] = NULL;
+    //        }
+    //    }
+    //}
+    //// just in case the bgm was turned down for the voice channel,
+    //// set the bgm volume back to normal
+    //if (bgmdownmode_flag)
+    //    setCurMusicVolume( music_volume );
 }
 
 void ONScripter::playClickVoice()

@@ -42,7 +42,7 @@
 #include <math.h>
 #include <time.h>
 
-#include <SDL_mixer.h>
+//#include <SDL_mixer.h>
 #include "DirPaths.h"
 #include "ScriptHandler.h"
 #include "NsaReader.h"
@@ -54,15 +54,15 @@
 #include "LUAHandler.h"
 #endif
 
-#if defined(USE_OGG_VORBIS)
-#if defined(OGG_HEADER)
-#include OGG_HEADER
-#elif defined(OGG_USE_TREMOR)
-#include <tremor/ivorbisfile.h>
-#else
-#include <vorbis/vorbisfile.h>
-#endif
-#endif
+//#if defined(USE_OGG_VORBIS)
+//#if defined(OGG_HEADER)
+//#include OGG_HEADER
+//#elif defined(OGG_USE_TREMOR)
+//#include <tremor/ivorbisfile.h>
+//#else
+//#include <vorbis/vorbisfile.h>
+//#endif
+//#endif
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -88,24 +88,24 @@ struct OVInfo{
     int mult2;
     unsigned char *buf;
     long decoded_length;
-#if defined(USE_OGG_VORBIS)
-    ogg_int64_t length;
-    ogg_int64_t pos;
-    OggVorbis_File ovf;
-#endif
+//#if defined(USE_OGG_VORBIS)
+//    ogg_int64_t length;
+//    ogg_int64_t pos;
+//    OggVorbis_File ovf;
+//#endif
 };
 
 class ScriptParser
 {
 public:
-    struct MusicStruct{
-        OVInfo *ovi;
-        int volume;
-        bool is_mute;
-        Mix_Chunk **voice_sample; //Mion: for bgmdownmode
-        MusicStruct()
-        : ovi(NULL), volume(0), is_mute(false), voice_sample(NULL) {}
-    };
+    //struct MusicStruct{
+    //    OVInfo *ovi;
+    //    int volume;
+    //    bool is_mute;
+    //    Mix_Chunk **voice_sample; //Mion: for bgmdownmode
+    //    MusicStruct()
+    //    : ovi(NULL), volume(0), is_mute(false), voice_sample(NULL) {}
+    //};
 
     ScriptParser();
     virtual ~ScriptParser();
@@ -507,7 +507,7 @@ protected:
     /* Sound related variables */
     public:
     //SDL_mutex* mMusicMutex;
-    MusicStruct music_struct;
+    //MusicStruct music_struct;
     int music_volume;
     int voice_volume;
     int se_volume;

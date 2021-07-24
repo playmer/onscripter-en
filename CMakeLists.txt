@@ -20,7 +20,7 @@ target_compile_features(onscripter_en PUBLIC cxx_std_17)
 target_link_libraries(onscripter_en
 PRIVATE
     bzlib
-    SDL2_mixer
+    #SDL2_mixer
     smpeg
     SDL2
     SDL2main

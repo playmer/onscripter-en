@@ -151,11 +151,11 @@ int ONScripter::wavestopCommand()
       mSoundEngine.mHandles.erase(channelIt);
     }
 
-    if ( audio_open_flag && wave_sample[MIX_WAVE_CHANNEL] ){
-        Mix_Pause( MIX_WAVE_CHANNEL );
-        Mix_FreeChunk( wave_sample[MIX_WAVE_CHANNEL] );
-        wave_sample[MIX_WAVE_CHANNEL] = NULL;
-    }
+    //if ( audio_open_flag && wave_sample[MIX_WAVE_CHANNEL] ){
+    //    Mix_Pause( MIX_WAVE_CHANNEL );
+    //    Mix_FreeChunk( wave_sample[MIX_WAVE_CHANNEL] );
+    //    wave_sample[MIX_WAVE_CHANNEL] = NULL;
+    //}
     setStr( &wave_file_name, NULL );
 
     return RET_CONTINUE;
@@ -229,8 +229,8 @@ int ONScripter::voicevolCommand()
 {
     voice_volume = script_h.readInt();
 
-    if ( wave_sample[0] )
-        Mix_Volume( 0, !volume_on_flag? 0 : voice_volume * 128 / 100 );
+    //if ( wave_sample[0] )
+    //    Mix_Volume( 0, !volume_on_flag? 0 : voice_volume * 128 / 100 );
 
     channelvolumes[0] = voice_volume;
 
@@ -1382,12 +1382,12 @@ int ONScripter::resetCommand()
     window_effect.effect = effect;
     window_effect.duration = duration;
     //reopen the audio mixer with default settings, if needed
-    if ((audio_format.format != MIX_DEFAULT_FORMAT) ||
-        (audio_format.channels != MIX_DEFAULT_CHANNELS) ||
-        (audio_format.freq != DEFAULT_AUDIO_RATE)) {
-        Mix_CloseAudio();
-        openAudio();
-    }
+    //if ((audio_format.format != MIX_DEFAULT_FORMAT) ||
+    //    (audio_format.channels != MIX_DEFAULT_CHANNELS) ||
+    //    (audio_format.freq != DEFAULT_AUDIO_RATE)) {
+    //    Mix_CloseAudio();
+    //    openAudio();
+    //}
     mp3fadeout_duration = fadeout;
     clearCurrentPage();
     string_buffer_offset = 0;
@@ -1738,9 +1738,9 @@ int ONScripter::mp3Command()
         }
 
         //SDL_LockMutex(mMusicMutex);
-        if (music_struct.voice_sample && *(music_struct.voice_sample)) {
-            music_volume /= 2;
-        }
+        //if (music_struct.voice_sample && *(music_struct.voice_sample)) {
+        //    music_volume /= 2;
+        //}
         //SDL_UnlockMutex(mMusicMutex);
 
         playSound(music_file_name,
@@ -2110,16 +2110,16 @@ int ONScripter::lspCommand()
 
 int ONScripter::loopbgmstopCommand()
 {
-    if ( wave_sample[MIX_LOOPBGM_CHANNEL0] ){
-        Mix_Pause(MIX_LOOPBGM_CHANNEL0);
-        Mix_FreeChunk( wave_sample[MIX_LOOPBGM_CHANNEL0] );
-        wave_sample[MIX_LOOPBGM_CHANNEL0] = NULL;
-    }
-    if ( wave_sample[MIX_LOOPBGM_CHANNEL1] ){
-        Mix_Pause(MIX_LOOPBGM_CHANNEL1);
-        Mix_FreeChunk( wave_sample[MIX_LOOPBGM_CHANNEL1] );
-        wave_sample[MIX_LOOPBGM_CHANNEL1] = NULL;
-    }
+    //if ( wave_sample[MIX_LOOPBGM_CHANNEL0] ){
+    //    Mix_Pause(MIX_LOOPBGM_CHANNEL0);
+    //    Mix_FreeChunk( wave_sample[MIX_LOOPBGM_CHANNEL0] );
+    //    wave_sample[MIX_LOOPBGM_CHANNEL0] = NULL;
+    //}
+    //if ( wave_sample[MIX_LOOPBGM_CHANNEL1] ){
+    //    Mix_Pause(MIX_LOOPBGM_CHANNEL1);
+    //    Mix_FreeChunk( wave_sample[MIX_LOOPBGM_CHANNEL1] );
+    //    wave_sample[MIX_LOOPBGM_CHANNEL1] = NULL;
+    //}
     setStr(&loop_bgm_name[0], NULL);
 
     return RET_CONTINUE;
@@ -3414,7 +3414,7 @@ int ONScripter::dwaveCommand()
     else if (ch >= ONS_MIX_CHANNELS) ch = ONS_MIX_CHANNELS-1;
 
     if (play_mode == WAVE_PLAY_LOADED){
-        Mix_PlayChannel(ch, wave_sample[ch], loop_flag?-1:0);
+        //Mix_PlayChannel(ch, wave_sample[ch], loop_flag?-1:0);
     }
     else{
         const char *buf = script_h.readStr();
@@ -3612,13 +3612,13 @@ int ONScripter::defineresetCommand()
     ScriptParser::reset();
     reset();
     //reopen the audio mixer with default settings, if needed
-    if (audio_open_flag &&
-        ( (audio_format.format != MIX_DEFAULT_FORMAT) ||
-          (audio_format.channels != MIX_DEFAULT_CHANNELS) ||
-          (audio_format.freq != DEFAULT_AUDIO_RATE) )) {
-        Mix_CloseAudio();
-        openAudio();
-    }
+    //if (audio_open_flag &&
+    //    ( (audio_format.format != MIX_DEFAULT_FORMAT) ||
+    //      (audio_format.channels != MIX_DEFAULT_CHANNELS) ||
+    //      (audio_format.freq != DEFAULT_AUDIO_RATE) )) {
+    //    Mix_CloseAudio();
+    //    openAudio();
+    //}
 
     setCurrentLabel( "define" );
 
@@ -3794,9 +3794,9 @@ int ONScripter::chvolCommand()
     else if (ch >= ONS_MIX_CHANNELS) ch = ONS_MIX_CHANNELS-1;
     int vol = script_h.readInt();
 
-    if ( wave_sample[ch] ){
-        Mix_Volume( ch, !volume_on_flag? 0 : vol * 128 / 100 );
-    }
+    //if ( wave_sample[ch] ){
+    //    Mix_Volume( ch, !volume_on_flag? 0 : vol * 128 / 100 );
+    //}
 
     channelvolumes[ch] = vol;
 
@@ -4325,10 +4325,10 @@ int ONScripter::bgmdownmodeCommand()
     bgmdownmode_flag = (script_h.readInt() != 0);
     
     //SDL_LockMutex(mMusicMutex);
-    if (bgmdownmode_flag)
-        music_struct.voice_sample = &wave_sample[0];
-    else
-        music_struct.voice_sample = NULL;
+    //if (bgmdownmode_flag)
+    //    music_struct.voice_sample = &wave_sample[0];
+    //else
+    //    music_struct.voice_sample = NULL;
     //SDL_UnlockMutex(mMusicMutex);
 
     return RET_CONTINUE;
