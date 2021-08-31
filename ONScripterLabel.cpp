@@ -469,7 +469,7 @@ void ONScripter::initSDL()
     SDL_Surface* icon = IMG_Load("icon.png");
     //use icon.png preferably, but try embedded resources if not found
     //(cmd-line option --use-app-icons to prefer app resources over icon.png)
-    //(Mac apps can set use-app-icons in a ons.cfg file within the
+    //(Mac apps can set use-app-icons in a engine.config file within the
     //bundle, to have it always use the bundle icns)
 #ifndef MACOSX
     if (!icon || use_app_icons) {

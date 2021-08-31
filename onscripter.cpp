@@ -34,7 +34,7 @@
 
 #include <cstdio>
 
-#define CFG_FILE "ons.cfg"
+#define CFG_FILE "engine.config"
 
 static void optionHelp()
 {
@@ -321,9 +321,15 @@ static void parseOptions(int argc, char **argv, ONScripter &ons, bool &hasArchiv
                 ons.setMaskType( ONScripter::PNG_MASK_USE_NSCRIPTER );
             }
             else{
-                char errstr[256];
-                snprintf(errstr, 256, "unknown option %s", argv[0]);
-                ons.errorAndCont(errstr, NULL, "Command-Line Issue", true);
+                auto command = std::string(argv[0] + 1);
+
+                // Only print an error if it's not a comment.
+                if (command.find_first_of("-//") != 0)
+                {
+                  char errstr[256];
+                  snprintf(errstr, 256, "unknown option %s", argv[0]);
+                  ons.errorAndCont(errstr, NULL, "Command-Line Issue", true);
+                }
             }
         }
         else if (!hasArchivePath) {
