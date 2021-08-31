@@ -1097,7 +1097,11 @@ SDL_Surface *AnimationInfo::resize( ONScripter* onscripter, SDL_Surface *surface
       float scaleHeight = onscripter->screen_surface->h / (float)src_s->h;
       float scaleWidth = onscripter->screen_surface->w  / (float)src_s->w;
       float scale = std::min(scaleHeight, scaleWidth);
-      if (/*!is_sprite ||*/ !is_button || !onscripter->mUpscaledTextures)
+      if (is_button && !onscripter->mUpscaledTextures)
+      {
+        // Actually, we're good.
+      }
+      else if (/*!is_sprite ||*/ !is_button || !onscripter->mUpscaledTextures)
       {
         w = scale * src_s->w;
         h = scale * src_s->h;
