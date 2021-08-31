@@ -68,6 +68,7 @@ PRIVATE
     NsaReader.cpp
     NsaReader.h
     onscripter.cpp
+    onscripter.rc
     ONScripterLabel.cpp
     ONScripter.h
     ONScripter_animation.cpp
