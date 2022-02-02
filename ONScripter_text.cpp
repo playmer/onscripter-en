@@ -241,6 +241,18 @@ void ONScripter::drawChar( char* text, Fontinfo *info, bool flush_flag,
         color.b = info->color[2];
         drawGlyph( surface, info, color, out_text, xy, false, cache_info, clip, dst_rect );
 
+        if (*text == 'y')
+        {
+            printf("Start 'y' char draw:\n");
+
+            printf("\tFontInfo ptr: %p\n", (void*)info);
+
+            if (clip)
+                printf("\tclip: {x: %d} {y: %d} {w: %d} {h: %d}\n", clip->x, clip->x, clip->w, clip->h);
+
+            printf("\tdstRect: {x: %d} {y: %d} {w: %d} {h: %d}\n", dst_rect.x, dst_rect.x, dst_rect.w, dst_rect.h);
+        }
+
         if ( surface == accumulation_surface &&
              !flush_flag &&
              (!clip || AnimationInfo::doClipping( &dst_rect, clip ) == 0) ){

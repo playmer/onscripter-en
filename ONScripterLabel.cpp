@@ -466,7 +466,8 @@ void ONScripter::initSDL()
     }
 
 //insani added app icon
-    SDL_Surface* icon = IMG_Load("icon.png");
+    SDL_Surface* icon = LoadSurfaceFromFile("icon.png");
+
     //use icon.png preferably, but try embedded resources if not found
     //(cmd-line option --use-app-icons to prefer app resources over icon.png)
     //(Mac apps can set use-app-icons in a engine.config file within the

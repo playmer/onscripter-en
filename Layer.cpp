@@ -29,6 +29,8 @@
 #include "Layer.h"
 #include "graphics_sum.h"
 
+#include "ONScripter.h"
+
 #ifndef NO_LAYER_EFFECTS
 
 #include <stdio.h>
@@ -568,15 +570,17 @@ static SDL_Surface *loadImage( char *file_name, bool *has_alpha, SDL_Surface *su
     unsigned char *buffer = new unsigned char[length];
     int location;
     br->getFile( file_name, buffer, &location );
-    SDL_Surface *tmp = IMG_Load_RW(SDL_RWFromMem( buffer, length ), 1);
 
-    char *ext = strrchr(file_name, '.');
-    if ( !tmp && ext && (!strcmp( ext+1, "JPG" ) || !strcmp( ext+1, "jpg" ) ) ){
-        fprintf( stderr, " *** force-loading a JPG image [%s]\n", file_name );
-        SDL_RWops *src = SDL_RWFromMem( buffer, length );
-        tmp = IMG_LoadJPG_RW(src);
-        SDL_RWclose(src);
-    }
+    SDL_Surface* tmp = LoadSurfaceFromMemory((char*)buffer, length);
+    //SDL_Surface *tmp = IMG_Load_RW(SDL_RWFromMem( buffer, length ), 1);
+    //
+    //char *ext = strrchr(file_name, '.');
+    //if ( !tmp && ext && (!strcmp( ext+1, "JPG" ) || !strcmp( ext+1, "jpg" ) ) ){
+    //    fprintf( stderr, " *** force-loading a JPG image [%s]\n", file_name );
+    //    SDL_RWops *src = SDL_RWFromMem( buffer, length );
+    //    tmp = IMG_LoadJPG_RW(src);
+    //    SDL_RWclose(src);
+    //}
     if ( tmp && has_alpha ) *has_alpha = tmp->format->Amask;
 
     delete[] buffer;

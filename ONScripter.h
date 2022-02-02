@@ -48,9 +48,7 @@
 #include "ScriptParser.h"
 #include "DirtyRect.h"
 #include <SDL.h>
-#include <SDL_image.h>
 #include <SDL_ttf.h>
-//#include <SDL_mixer.h>
 
 #include "soloud.h"
 #include "soloud_wav.h"
@@ -1201,5 +1199,25 @@ private:
 
 
 void SetVolumeOnChannel(ONScripter::SoundEngine& engine, int channel, bool muted, int volume);
+
+struct texture_data
+{
+    std::vector<char> ImageData;
+    size_t Width;
+    size_t Height;
+    size_t Components;
+
+    void ReduceToComponents();
+};
+
+SDL_Surface* LoadSurfaceFromFile(const char* filename);
+SDL_Surface* LoadSurfaceFromMemory(const char* data, size_t size);
+
+texture_data LoadImageFromFile(const char* filename);
+texture_data LoadImageFromMemory(const char* data, size_t size);
+
+texture_data LoadBmpFromMemory(const char* data, size_t size);
+texture_data LoadPngFromMemory(const char* data, size_t size);
+texture_data LoadJpgFromMemory(const char* data, size_t size);
 
 #endif // __ONSCRIPTER_LABEL_H__

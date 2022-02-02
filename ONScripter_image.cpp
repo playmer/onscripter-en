@@ -300,18 +300,13 @@ SDL_Surface *ONScripter::createSurfaceFromFile(char *filename, int *location)
     }
     char *ext = strrchr(filename, '.');
 
-    SDL_RWops *src = SDL_RWFromMem(buffer, length);
-    SDL_Surface *tmp = IMG_Load_RW(src, 0);
-    if (!tmp && ext && (!strcmp(ext+1, "JPG") || !strcmp(ext+1, "jpg"))){
-        fprintf(stderr, " *** force-loading a JPG image [%s]\n", filename);
-        tmp = IMG_LoadJPG_RW(src);
-
-    }
-    SDL_RWclose(src);
-
+    SDL_Surface* tmp = LoadSurfaceFromMemory((char*)buffer, length);
+    
     if (buffer != tmp_image_buf) delete[] buffer;
     if (!tmp)
-        fprintf( stderr, " *** can't load file [%s]: %s ***\n", filename, IMG_GetError() );
+    {
+        fprintf(stderr, " *** can't load file [%s]: ***\n", filename);
+    }
 
     return tmp;
 }
@@ -727,3 +722,218 @@ void ONScripter::createBackground()
 
     bg_info.fill(bg_info.color[0], bg_info.color[1], bg_info.color[2], 0xff);
 }
+
+#include "jpgd.h"
+#include "lodepng.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+
+#define STBI_NO_JPEG
+#define STBI_NO_PNG
+//#define STBI_NO_BMP
+#define STBI_NO_PSD
+#define STBI_NO_TGA
+#define STBI_NO_GIF
+#define STBI_NO_HDR
+#define STBI_NO_PIC
+#define STBI_NO_PNM   (.ppm and .pgm)
+#include "stb_image.h"
+
+SDL_Surface* LoadSurfaceFromFile(const char* filename)
+{
+    auto imageData = LoadImageFromFile(filename);
+    auto pixelFormat = SDL_PIXELFORMAT_RGBA32;
+    auto depth = 32;
+    auto pitch = imageData.Components * imageData.Width;
+    if (imageData.Components == 3)
+    {
+        pixelFormat = SDL_PIXELFORMAT_RGB24;
+        depth = 24;
+    }
+
+    auto surface = SDL_CreateRGBSurfaceWithFormat(0, imageData.Width, imageData.Height, depth, pixelFormat);
+    
+    /* This is fast for surfaces that don't require locking. */
+    /* Once locked, surface->pixels is safe to access. */
+    SDL_LockSurface(surface);
+
+    /* This assumes that color value zero is black. Use
+       SDL_MapRGBA() for more robust surface color mapping! */
+       /* height times pitch is the size of the surface's whole buffer. */
+    SDL_memset(surface->pixels, 0, surface->h * surface->pitch);
+    SDL_memcpy(surface->pixels, imageData.ImageData.data(), imageData.ImageData.size());
+
+    SDL_UnlockSurface(surface);
+
+    return surface;
+}
+
+SDL_Surface* LoadSurfaceFromMemory(const char* data, size_t size)
+{
+    auto imageData = LoadImageFromMemory(data, size);
+    auto pixelFormat = SDL_PIXELFORMAT_RGBA32;
+    auto depth = 32;
+    auto pitch = imageData.Components * imageData.Width;
+    if (imageData.Components == 3)
+    {
+        pixelFormat = SDL_PIXELFORMAT_RGB24;
+        depth = 24;
+    }
+
+    auto surface = SDL_CreateRGBSurfaceWithFormat(0, imageData.Width, imageData.Height, depth, pixelFormat);
+
+    /* This is fast for surfaces that don't require locking. */
+    /* Once locked, surface->pixels is safe to access. */
+    SDL_LockSurface(surface);
+
+    /* This assumes that color value zero is black. Use
+       SDL_MapRGBA() for more robust surface color mapping! */
+       /* height times pitch is the size of the surface's whole buffer. */
+    SDL_memset(surface->pixels, 0, surface->h* surface->pitch);
+    SDL_memcpy(surface->pixels, imageData.ImageData.data(), imageData.ImageData.size());
+
+    SDL_UnlockSurface(surface);
+
+    return surface;
+}
+
+texture_data LoadImageFromFile(const char* filename)
+{
+    std::vector<char> imageFileData;
+    SDL_RWops* io = SDL_RWFromFile(filename, "rb");
+    if (io != nullptr)
+    {
+        // Seek to 0 bytes from the end of the file
+        Sint64 length = SDL_RWseek(io, 0, RW_SEEK_END);
+        SDL_RWseek(io, 0, RW_SEEK_SET);
+        imageFileData.resize(length);
+        SDL_RWread(io, imageFileData.data(), length, 1);
+        SDL_RWclose(io);
+    }
+
+    return LoadImageFromMemory(imageFileData.data(), imageFileData.size());
+}
+
+texture_data LoadImageFromMemory(const char* data, size_t size)
+{
+    texture_data temp;
+    
+    temp = LoadPngFromMemory(data, size);
+    if (temp.ImageData.size() > 0) return temp;
+
+    temp = LoadJpgFromMemory(data, size);
+    if (temp.ImageData.size() > 0) return temp;
+
+    temp = LoadBmpFromMemory(data, size);
+    if (temp.ImageData.size() > 0) return temp;
+
+    return temp;
+}
+
+texture_data LoadBmpFromMemory(const char* data, size_t size)
+{
+    texture_data image;
+    int width, height, components;
+
+    auto tempImageData = stbi_load_from_memory((stbi_uc*)data, size, &width, &height, &components, 4);
+
+    if (nullptr == tempImageData)
+        return std::move(image);
+    
+    image.Width = width;
+    image.Height = height;
+    image.Components = components;
+    
+    image.ImageData.resize(width * height * 4);
+    memcpy(image.ImageData.data(), tempImageData, image.ImageData.size());
+    
+    stbi_image_free(tempImageData);
+    image.ReduceToComponents();
+    return std::move(image);
+}
+
+texture_data LoadPngFromMemory(const char* data, size_t size)
+{
+    texture_data image;
+    unsigned width, height, components;
+    LodePNGState state;
+    lodepng_state_init(&state);
+
+    unsigned char* tempImageData;
+    auto err = lodepng_decode(&tempImageData, &width, &height, &state, (const unsigned char*)data, size);
+
+    if (err != 0)
+        return std::move(image);
+
+    image.Width = width;
+    image.Height = height;
+
+    //LCT_RGB = 2, /*RGB: 8,16 bit*/
+    //LCT_PALETTE = 3, /*palette: 1,2,4,8 bit*/
+    //LCT_GREY_ALPHA = 4, /*grayscale with alpha: 8,16 bit*/
+    //LCT_RGBA = 6, /*RGB with alpha: 8,16 bit*/
+    switch (state.info_raw.colortype)
+    {
+    case LCT_RGB:
+        image.Components = 3;
+        image.ReduceToComponents(); 
+        break;
+    case LCT_RGBA: 
+        image.Components = 4;
+        break;
+    default:
+        printf("Unsupported png");
+    }
+
+    image.ImageData.resize(width * height * 4);
+    memcpy(image.ImageData.data(), tempImageData, image.ImageData.size());
+
+    free(tempImageData);
+    image.ReduceToComponents();
+
+    return std::move(image);
+}
+
+texture_data LoadJpgFromMemory(const char* data, size_t size)
+{
+    texture_data image;
+
+    int width, height, components;
+    auto tempImageData = jpgd::decompress_jpeg_image_from_memory((const unsigned char*)data, size, &width, &height, &components, 4);
+
+    if (nullptr == tempImageData)
+        return std::move(image);
+
+    image.Width = width;
+    image.Height = height;
+    image.Components = components;
+
+    image.ImageData.resize(width * height * 4);
+    memcpy(image.ImageData.data(), tempImageData, image.ImageData.size());
+
+    free(tempImageData);
+
+    image.ReduceToComponents();
+
+    return std::move(image);
+}
+
+
+void texture_data::ReduceToComponents()
+{
+
+    if (Components == 3)
+    {
+        char* from = ImageData.data();
+        char* to = ImageData.data();
+        for (; from < &ImageData.back(); to += 3, from += 4)
+        {
+            to[0] = from[0];
+            to[1] = from[1];
+            to[2] = from[2];
+        }
+
+        ImageData.resize(Width* Height * 3);
+    }
+}
+

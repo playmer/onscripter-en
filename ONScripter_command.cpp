@@ -33,8 +33,6 @@
 
 #include <string>
 
-#include <SDL_image.h>
-
 #include <cstdio>
 #include <sys/stat.h>
 #include <sys/types.h>

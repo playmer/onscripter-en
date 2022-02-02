@@ -5,6 +5,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+if (MSVC)
+    add_compile_options(/MP)
+endif()
+
 add_definitions(-DMUSIC_OGG)
 
 add_subdirectory(deps)
@@ -20,13 +24,14 @@ target_compile_features(onscripter_en PUBLIC cxx_std_17)
 target_link_libraries(onscripter_en
 PRIVATE
     bzlib
-    #SDL2_mixer
+    jpgd
+    lodepng
     smpeg
     SDL2
     SDL2main
-    SDL2::image
     SDL2_ttf
     soloud
+    stb_image
 )
 
 target_sources(onscripter_en

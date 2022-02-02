@@ -1,12 +1,6 @@
-[submodule "deps/SDL_mixer"]
-	path = deps/SDL_mixer
-	url = https://github.com/playmer/SDL_mixer.git
 [submodule "deps/SDL2"]
 	path = deps/SDL2
 	url = https://github.com/libsdl-org/SDL.git
-[submodule "deps/SDL_Image"]
-	path = deps/SDL_Image
-	url = https://github.com/playmer/SDL_image.git
 [submodule "deps/SDL_ttf"]
 	path = deps/SDL_ttf
 	url = https://github.com/playmer/SDL_ttf.git
@@ -16,3 +10,12 @@
 [submodule "deps/soloud/repo"]
 	path = deps/soloud/repo
 	url = https://github.com/playmer/soloud.git
+[submodule "deps/basis_universal"]
+	path = deps/basis_universal
+	url = https://github.com/BinomialLLC/basis_universal.git
+[submodule "deps/lodepng"]
+	path = deps/lodepng
+	url = https://github.com/lvandeve/lodepng.git
+[submodule "deps/stb"]
+	path = deps/stb
+	url = https://github.com/nothings/stb.git
