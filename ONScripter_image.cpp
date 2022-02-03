@@ -255,10 +255,20 @@ SDL_Surface *ONScripter::createSurfaceFromFile(char *filename, int *location)
 
     if (!alt_buffer) {
       std::filesystem::path potentialReplacement = "assets";
-      potentialReplacement = potentialReplacement / filename;
+
+      std::string file = filename;
+      for (auto& ch : file) {
+        if (ch == '\\') {
+          ch = '/';
+        }
+      }
+
+      potentialReplacement = potentialReplacement / file;
 
       if (std::filesystem::exists(potentialReplacement.replace_extension(".png")))
         potentialReplacement = potentialReplacement.replace_extension(".png");
+
+
       
       if (mUpscaledTextures && std::filesystem::exists(potentialReplacement))
       {

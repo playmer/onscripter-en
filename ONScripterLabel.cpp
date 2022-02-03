@@ -92,6 +92,7 @@ extern "C" void waveCallback( int channel );
 
 void ONScripter::WarpMouse(int x, int y)
 {
+  printf("x: %d, y: %d\n", x, y);
   int windowResolutionX, windowResolutionY;
   SDL_GetRendererOutputSize(mRenderer, &windowResolutionX, &windowResolutionY);
 
