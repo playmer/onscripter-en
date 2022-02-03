@@ -774,7 +774,11 @@ ONScripter::ONScripter()
   , system_menu_title(NULL)
 {
     //first initialize *everything* (static) to base values
+#if TARGET_OS_WIN32
     mSoundBackEnd = SoLoud::Soloud::BACKENDS::WASAPI;
+#elif TARGET_OS_MAC
+    mSoundBackEnd = SoLoud::Soloud::BACKENDS::COREAUDIO;
+#endif
 
     resetFlags();
     resetFlagsSub();

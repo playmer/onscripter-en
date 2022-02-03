@@ -190,13 +190,19 @@ static void parseOptions(int argc, char **argv, ONScripter &ons, bool &hasArchiv
                 ons.setJapaneseMenu();
             }
             else if ( !strcmp( argv[0]+1, "-audio-backend-WINMM" ) ){
+              #if TARGET_OS_WIN32
                 ons.SetSoundEngineBackend(SoLoud::Soloud::BACKENDS::WINMM);
+              #endif
             }
             else if ( !strcmp( argv[0]+1, "-audio-backend-XAUDIO2" ) ){
+              #if TARGET_OS_WIN32
                 ons.SetSoundEngineBackend(SoLoud::Soloud::BACKENDS::XAUDIO2);
+              #endif
             }
             else if ( !strcmp( argv[0]+1, "-audio-backend-WASAPI" ) ){
+              #if TARGET_OS_WIN32
                 ons.SetSoundEngineBackend(SoLoud::Soloud::BACKENDS::WASAPI);
+              #endif
             }
             else if ( !strcmp( argv[0]+1, "-no-upscaled-textures" ) ){
                 ons.mUpscaledTextures = false;

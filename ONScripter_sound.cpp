@@ -586,7 +586,7 @@ void ONScripter::stopBGM( bool continue_flag )
     auto channelIt = mSoundEngine.mHandles.find(MIX_BGM_CHANNEL);
     if (channelIt != mSoundEngine.mHandles.end())
     {
-      //mSoundEngine.mSoLoud.stop(channelIt->second);
+      mSoundEngine.mSoLoud.stop(channelIt->second);
       mSoundEngine.mHandles.erase(channelIt);
     }
 
