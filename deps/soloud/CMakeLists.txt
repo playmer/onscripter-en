@@ -2,8 +2,6 @@ add_library(soloud STATIC)
 
 #target_compile_definitions(soloud PUBLIC -DWITH_SDL2)
 
-target_compile_definitions(soloud PUBLIC -DWITH_WASAPI -DWITH_WINMM -DWITH_XAUDIO2)
-
 
 
 target_link_libraries(soloud PUBLIC SDL2)
@@ -110,9 +108,6 @@ PRIVATE
     #repo/src/backend/sdl2_static/soloud_sdl2_static.cpp
     #repo/src/backend/sdl_static/soloud_sdl_static.cpp
     #repo/src/backend/vita_homebrew/soloud_vita_homebrew.cpp
-    repo/src/backend/wasapi/soloud_wasapi.cpp
-    repo/src/backend/winmm/soloud_winmm.cpp
-    repo/src/backend/xaudio2/soloud_xaudio2.cpp
     repo/src/c_api/soloud_c.cpp
     repo/src/core/soloud.cpp
     repo/src/core/soloud_audiosource.cpp
@@ -151,3 +146,25 @@ PRIVATE
     #repo/src/tools/resamplerlab/stb_image_write.h
     #repo/src/tools/sanity/sanity.cpp
 )
+
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+    target_compile_definitions(soloud PUBLIC -DWITH_WASAPI -DWITH_WINMM -DWITH_XAUDIO2)
+
+    target_sources(soloud PUBLIC
+        repo/src/backend/wasapi/soloud_wasapi.cpp
+        repo/src/backend/winmm/soloud_winmm.cpp
+        repo/src/backend/xaudio2/soloud_xaudio2.cpp
+    )
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
+    find_library(COREAUDIO_LIBRARY CoreAudio)
+    find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+    find_library(AUDIOTOOLBOX_LIBRARY AudioToolbox)
+
+    target_link_libraries(soloud PUBLIC ${AUDIOTOOLBOX_LIBRARY} ${COREAUDIO_LIBRARY} ${COREFOUNDATION_LIBRARY})
+    target_compile_definitions(soloud PUBLIC -DWITH_COREAUDIO)
+
+    target_sources(soloud PUBLIC
+        repo/src/backend/coreaudio/soloud_coreaudio.cpp
+    )
+endif()

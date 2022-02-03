@@ -124,7 +124,7 @@ bool PlayOnSoundEngine(ONScripter::SoundEngine& engine, const char *filename, bo
     engine.mSoLoud.stop(channelIt->second);
     engine.mHandles.erase(channelIt);
   }
-  
+
   engine.mHandles.emplace(channel, engine.mSoLoud.play(it->second));
 
   auto channelHandle = engine.mHandles[channel];
@@ -586,7 +586,7 @@ void ONScripter::stopBGM( bool continue_flag )
     auto channelIt = mSoundEngine.mHandles.find(MIX_BGM_CHANNEL);
     if (channelIt != mSoundEngine.mHandles.end())
     {
-      mSoundEngine.mSoLoud.stop(channelIt->second);
+      //mSoundEngine.mSoLoud.stop(channelIt->second);
       mSoundEngine.mHandles.erase(channelIt);
     }
 

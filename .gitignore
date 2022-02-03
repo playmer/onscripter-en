@@ -1,1 +1,10 @@
 build/
+.idea/
+
+cmake-build-debug/
+
+xcode/
+
+ninja/
+
+.DS_Store

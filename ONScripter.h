@@ -87,6 +87,7 @@
 #define DEFAULT_AUDIO_RATE 44100
 #endif
 
+#include <string>
 inline std::string gDEFAULT_WM_TITLE = "ONScripter-EN";
 #define DEFAULT_WM_ICON  "Ons-en"
 
@@ -108,7 +109,7 @@ public:
       const int x = event.x;
       const int y = event.y;
       int windowResolutionX, windowResolutionY;
-      SDL_GetWindowSize(mWindow, &windowResolutionX, &windowResolutionY);
+      SDL_GetRendererOutputSize(mRenderer, &windowResolutionX, &windowResolutionY);
 
       float scaleHeight = windowResolutionY / (float)screen_surface->h;
       float scaleWidth  = windowResolutionX / (float)screen_surface->w;

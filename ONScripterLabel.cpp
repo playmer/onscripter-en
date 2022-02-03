@@ -93,7 +93,7 @@ extern "C" void waveCallback( int channel );
 void ONScripter::WarpMouse(int x, int y)
 {
   int windowResolutionX, windowResolutionY;
-  SDL_GetWindowSize(mWindow, &windowResolutionX, &windowResolutionY);
+  SDL_GetRendererOutputSize(mRenderer, &windowResolutionX, &windowResolutionY);
 
   float scaleHeight = windowResolutionY / (float)screen_surface->h;
   float scaleWidth  = windowResolutionX / (float)screen_surface->w;
@@ -139,7 +139,7 @@ void ONScripter::UpdateScreen(SDL_Rect dst_rect)
   SDL_QueryTexture(texture, &format, &access, &imageResolutionX, &imageResolutionY);
 
   int windowResolutionX, windowResolutionY;
-  SDL_GetWindowSize(mWindow, &windowResolutionX, &windowResolutionY);
+  SDL_GetRendererOutputSize(mRenderer, &windowResolutionX, &windowResolutionY);
 
   float scaleHeight = windowResolutionY / (float)imageResolutionY;
   float scaleWidth  = windowResolutionX / (float)imageResolutionX;
@@ -456,7 +456,7 @@ void ONScripter::initSDL()
         printf( "Initialize JOYSTICK\n");
 #endif
     
-    SDL_CreateWindowAndRenderer(800, 600, SDL_WINDOW_RESIZABLE, &mWindow, &mRenderer);
+    SDL_CreateWindowAndRenderer(800, 600, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI, &mWindow, &mRenderer);
 
     /* ---------------------------------------- */
     /* Initialize SDL */
@@ -486,14 +486,14 @@ void ONScripter::initSDL()
         //}
 #else
         //backport from ponscripter
-        const InternalResource* internal_icon = getResource("icon.png");
-        if (internal_icon) {
-            if (icon) SDL_FreeSurface(icon);
-            SDL_RWops* rwicon = SDL_RWFromConstMem(internal_icon->buffer,
-                                                   internal_icon->size);
-            icon = IMG_Load_RW(rwicon, 0);
-            use_app_icons = false;
-        }
+        //const InternalResource* internal_icon = getResource("icon.png");
+        //if (internal_icon) {
+        //    if (icon) SDL_FreeSurface(icon);
+        //    SDL_RWops* rwicon = SDL_RWFromConstMem(internal_icon->buffer,
+        //                                           internal_icon->size);
+        //    icon = IMG_Load_RW(rwicon, 0);
+        //    use_app_icons = false;
+        //}
 #endif //WIN32
     }
 #endif //!MACOSX
@@ -572,7 +572,7 @@ void ONScripter::initSDL()
 #endif
     if (scaled_flag) {
         SDL_DisplayMode DM;
-        SDL_GetCurrentDisplayMode(0, &DM);
+        SDL_GetDesktopDisplayMode(0, &DM);
         int native_width = DM.w;
         int native_height = DM.h;
         
