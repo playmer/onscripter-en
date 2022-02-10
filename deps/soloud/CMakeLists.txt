@@ -167,4 +167,16 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL Darwin)
     target_sources(soloud PUBLIC
         repo/src/backend/coreaudio/soloud_coreaudio.cpp
     )
+else()
+    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+    find_package(Threads REQUIRED)
+
+    target_compile_definitions(soloud PUBLIC -DWITH_MINIAUDIO)
+
+    target_link_libraries(soloud PUBLIC dl Threads::Threads)
+
+    target_sources(soloud PUBLIC
+        repo/src/backend/miniaudio/soloud_miniaudio.cpp
+    )
 endif()

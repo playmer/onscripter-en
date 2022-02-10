@@ -778,6 +778,8 @@ ONScripter::ONScripter()
     mSoundBackEnd = SoLoud::Soloud::BACKENDS::WASAPI;
 #elif TARGET_OS_MAC
     mSoundBackEnd = SoLoud::Soloud::BACKENDS::COREAUDIO;
+#else
+    mSoundBackEnd = SoLoud::Soloud::BACKENDS::MINIAUDIO;
 #endif
 
     resetFlags();
@@ -1258,7 +1260,7 @@ int ONScripter::init()
     //mMusicMutex = SDL_CreateMutex();
 
 
-    printf("%s\n", SDL_GetCurrentAudioDriver());
+    //printf("%s\n", SDL_GetCurrentAudioDriver());
 
     image_surface = SDL_CreateRGBSurface( SDL_SWSURFACE, 1, 1, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000 );
     accumulation_surface = AnimationInfo::allocSurface( screen_width, screen_height );
