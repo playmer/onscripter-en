@@ -117,15 +117,19 @@ bool ONScripter::ToggleFullscreen(SDL_Window* Window) {
     return 0 == SDL_SetWindowFullscreen(Window, IsFullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
 }
 
-SDL_Surface* ONScripter::SDL_SetVideoMode(int width, int height, int bpp, bool fullscreen)
+SDL_Surface* ONScripter::SetVideoMode(int width, int height, int bpp, bool fullscreen)
 {
   SDL_SetWindowSize(mWindow, width, height);
   SDL_SetWindowFullscreen(mWindow, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+
+  mGLRenderer.Resize(width, height);
+
   return screen_surface;
 }
 
 void ONScripter::UpdateScreen(SDL_Rect dst_rect)
 {
+    // Original
   SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, 255);
   SDL_RenderClear(mRenderer);
 
@@ -155,6 +159,9 @@ void ONScripter::UpdateScreen(SDL_Rect dst_rect)
   SDL_RenderCopy(mRenderer, texture, NULL /*&dst_rect*/, &dstRect);
   SDL_RenderPresent(mRenderer);
   SDL_DestroyTexture(texture);
+
+    // GL
+  mGLRenderer.UpdateScreen();
 }
 
 typedef int (ONScripter::*FuncList)();
@@ -422,6 +429,250 @@ static void SDL_Quit_Wrapper()
     SDL_Quit();
 }
 
+
+static char const* Source(GLenum source)
+{
+    switch (source)
+    {
+    case GL_DEBUG_SOURCE_API: return "DEBUG_SOURCE_API";
+    case GL_DEBUG_SOURCE_WINDOW_SYSTEM: return "DEBUG_SOURCE_WINDOW_SYSTEM";
+    case GL_DEBUG_SOURCE_SHADER_COMPILER: return "DEBUG_SOURCE_SHADER_COMPILER";
+    case GL_DEBUG_SOURCE_THIRD_PARTY: return "DEBUG_SOURCE_THIRD_PARTY";
+    case GL_DEBUG_SOURCE_APPLICATION: return "DEBUG_SOURCE_APPLICATION";
+    case GL_DEBUG_SOURCE_OTHER: return "DEBUG_SOURCE_OTHER";
+    default: return "unknown";
+    }
+}
+
+static char const* Severity(GLenum severity)
+{
+    switch (severity)
+    {
+    case GL_DEBUG_SEVERITY_HIGH: return "DEBUG_SEVERITY_HIGH";
+    case GL_DEBUG_SEVERITY_MEDIUM: return "DEBUG_SEVERITY_MEDIUM";
+    case GL_DEBUG_SEVERITY_LOW: return "DEBUG_SEVERITY_LOW";
+    case GL_DEBUG_SEVERITY_NOTIFICATION: return "DEBUG_SEVERITY_NOTIFICATION";
+    default: return "unknown";
+    }
+}
+
+
+static char const* Type(GLenum type)
+{
+    switch (type)
+    {
+    case GL_DEBUG_TYPE_ERROR: return "DEBUG_TYPE_ERROR";
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: return "DEBUG_TYPE_DEPRECATED_BEHAVIOR";
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: return "DEBUG_TYPE_UNDEFINED_BEHAVIOR";
+    case GL_DEBUG_TYPE_PORTABILITY: return "DEBUG_TYPE_PORTABILITY";
+    case GL_DEBUG_TYPE_PERFORMANCE: return "DEBUG_TYPE_PERFORMANCE";
+    case GL_DEBUG_TYPE_MARKER: return "DEBUG_TYPE_MARKER";
+    case GL_DEBUG_TYPE_PUSH_GROUP: return "DEBUG_TYPE_PUSH_GROUP";
+    case GL_DEBUG_TYPE_POP_GROUP: return "DEBUG_TYPE_POP_GROUP";
+    case GL_DEBUG_TYPE_OTHER: return "DEBUG_TYPE_OTHER";
+    default: return "unknown";
+    }
+}
+
+
+static void APIENTRY messageCallback(GLenum source,
+    GLenum type,
+    GLuint id,
+    GLenum severity,
+    GLsizei length,
+    const GLchar* message,
+    const void* userParam)
+{
+    if (GL_DEBUG_SEVERITY_NOTIFICATION == severity)
+    {
+        return;
+    }
+
+    printf("GL DEBUG CALLBACK:\n    Source = %s\n    type = %s\n    severity = %s\n    message = %s\n",
+        Source(source),
+        Type(type),
+        Severity(severity),
+        message);
+}
+
+
+void GLRenderer::RenderToTexture::Create(SDL_Surface* aSurface)
+{
+    CreateInternal(aSurface->w, aSurface->h, aSurface);
+}
+
+
+void GLRenderer::RenderToTexture::Create(int aWidth, int aHeight)
+{
+
+}
+
+void GLRenderer::RenderToTexture::CreateInternal(int aWidth, int aHeight, SDL_Surface* aSurface)
+{
+    //////////////// Framebuffer
+    glGenFramebuffers(1, &mFramebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, mFramebuffer);
+
+    //////////////// Color
+    glGenTextures(1, &mColor);
+
+    // "Bind" the newly created texture : all future texture functions will modify this texture
+    glBindTexture(GL_TEXTURE_2D, mColor);
+
+    // Give an empty image to OpenGL ( the last "0" )
+    if (nullptr == aSurface)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, aWidth, aHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    }
+    else
+    {
+        SDL_Surface* newSurface = SDL_CreateRGBSurface(0, aWidth, aHeight, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+        SDL_BlitSurface(aSurface, 0, newSurface, 0); // Blit onto a purely RGB Surface
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, aWidth, aHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, newSurface->pixels);
+    }
+
+    // Poor filtering. Needed !
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    //////////////// Depth
+    glGenRenderbuffers(1, &mDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, mDepth);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, aWidth, aHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, mDepth);
+
+
+    //////////////// Framebuffer Setup
+    // Set "renderedTexture" as our colour attachement #0
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, mColor, 0);
+
+    // Set the list of draw buffers.
+    GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+    glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
+}
+
+void GLRenderer::Initialize(int aWidth, int aHeight)
+{
+    // Decide GL+GLSL versions
+#if defined(IMGUI_IMPL_OPENGL_ES2)
+    // GL ES 2.0 + GLSL 100
+    const char* glsl_version = "#version 100";
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#elif defined(__APPLE__)
+    // GL 3.2 Core + GLSL 150
+    const char* glsl_version = "#version 150";
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG); // Always required on Mac
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+#else
+    // GL 3.3 + GLSL 130
+    const char* glsl_version = "#version 330";
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+#endif
+
+    // Create window with graphics context
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
+    mSecondWindow = SDL_CreateWindow("GL Test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, aWidth, aHeight, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL);
+    if (mSecondWindow == nullptr)
+    {
+        puts(SDL_GetError());
+    }
+    mContext = SDL_GL_CreateContext(mSecondWindow);
+    SDL_GL_MakeCurrent(mSecondWindow, mContext);
+
+    glbinding::initialize([](const char* name) 
+        { 
+            auto fn = reinterpret_cast<glbinding::ProcAddress>(SDL_GL_GetProcAddress(name));;
+            return fn;
+        }, true);
+
+    glEnable(GL_DEBUG_OUTPUT);
+
+    // FIXME: This doesn't work on Apple when I tested it, need to look into this more on 
+    // other platforms, and maybe only enable it in dev builds.
+#if defined(_WIN32)
+    glDebugMessageCallback(messageCallback, nullptr);
+#endif
+
+
+    accumulation_surface.Create(aWidth, aHeight);
+    backup_surface.Create(aWidth, aHeight);
+    screen_surface.Create(aWidth, aHeight);
+    effect_dst_surface.Create(aWidth, aHeight);
+    effect_src_surface.Create(aWidth, aHeight);
+    effect_tmp_surface.Create(aWidth, aHeight);
+    screenshot_surface.Create(aWidth, aHeight);
+    image_surface.Create(aWidth, aHeight);
+}
+
+void GLRenderer::Resize(int aWidth, int aHeight)
+{
+    SDL_SetWindowSize(mSecondWindow, aWidth, aHeight);
+
+    DestroyTextures();
+    accumulation_surface.Create(aWidth, aHeight);
+    backup_surface.Create(aWidth, aHeight);
+    screen_surface.Create(aWidth, aHeight);
+    effect_dst_surface.Create(aWidth, aHeight);
+    effect_src_surface.Create(aWidth, aHeight);
+    effect_tmp_surface.Create(aWidth, aHeight);
+    screenshot_surface.Create(aWidth, aHeight);
+    image_surface.Create(aWidth, aHeight);
+}
+
+void GLRenderer::DestroyTextures()
+{
+    accumulation_surface.Destroy();
+    backup_surface.Destroy();
+    screen_surface.Destroy();
+    effect_dst_surface.Destroy();
+    effect_src_surface.Destroy();
+    effect_tmp_surface.Destroy();
+    screenshot_surface.Destroy();
+    image_surface.Destroy();
+}
+
+void GLRenderer::RenderToTexture::Destroy()
+{
+    glDeleteTextures(1, &mDepth);
+    glDeleteBuffers(1, &mDepth);
+    glDeleteTextures(1, &mColor);
+    glDeleteBuffers(1, &mColor);
+    glDeleteFramebuffers(1, &mFramebuffer);
+}
+
+void GLRenderer::UpdateScreen()
+{
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    SDL_GL_SwapWindow(mSecondWindow);
+}
+
+
+void ONScripter::InitializeWindowAndRenderer()
+{
+    mGLRenderer.Initialize(800, 600);
+    SDL_CreateWindowAndRenderer(800, 600, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI, &mWindow, &mRenderer);
+}
+
+
+void ONScripter::SetWindowIcon(SDL_Surface* icon)
+{
+    SDL_SetWindowIcon(mWindow, icon);
+    SDL_SetWindowIcon(mGLRenderer.mSecondWindow, icon);
+}
+
 void ONScripter::initSDL()
 {
     /* ---------------------------------------- */
@@ -457,7 +708,7 @@ void ONScripter::initSDL()
         printf( "Initialize JOYSTICK\n");
 #endif
     
-    SDL_CreateWindowAndRenderer(800, 600, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI, &mWindow, &mRenderer);
+    InitializeWindowAndRenderer();
 
     /* ---------------------------------------- */
     /* Initialize SDL */
@@ -528,7 +779,7 @@ void ONScripter::initSDL()
             SDL_FreeSurface(tmp);
         }
 #endif //MACOSX || WIN32
-        SDL_SetWindowIcon(mWindow, icon);
+        SetWindowIcon(icon);
     }
     if (icon)
         SDL_FreeSurface(icon);
@@ -635,7 +886,7 @@ void ONScripter::initSDL()
     }
 #endif
     screen_surface = AnimationInfo::allocSurface( screen_width, screen_height );
-    screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, fullscreen_mode );
+    screen_surface = SetVideoMode( screen_width, screen_height, screen_bpp, fullscreen_mode );
 
     /* ---------------------------------------- */
     /* Check if VGA screen is available. */
@@ -644,7 +895,7 @@ void ONScripter::initSDL()
         screen_ratio1 /= 2;
         screen_width  /= 2;
         screen_height /= 2;
-        screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, fullscreen_mode );
+        screen_surface = SetVideoMode( screen_width, screen_height, screen_bpp, fullscreen_mode );
     }
 #endif
 

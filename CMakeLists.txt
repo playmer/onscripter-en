@@ -1,5 +1,33 @@
-cmake_minimum_required(VERSION 3.20.0 FATAL_ERROR) 
+cmake_minimum_required(VERSION 3.24.0 FATAL_ERROR) 
+
+##################################
+## vcpkg Preamble
+include(FetchContent)
+FetchContent_Declare(
+    vcpkg
+    GIT_REPOSITORY https://github.com/microsoft/vcpkg.git
+    GIT_TAG        origin/master
+)
+
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    FetchContent_Populate(vcpkg)
+    set(CMAKE_TOOLCHAIN_FILE "${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake")
+endif()
+
+set(VCPKG_HOST_TRIPLET "${VCPKG_TARGET_TRIPLET}")
+
+##################################
+## vcpkg Preamble
 project(onscripter_en C CXX)
+
+find_package(BZip2 REQUIRED)
+find_package(freetype CONFIG REQUIRED)
+find_package(lodepng CONFIG REQUIRED)
+find_package(glbinding CONFIG REQUIRED)
+find_package(SDL2 CONFIG REQUIRED)
+find_package(SDL2_ttf CONFIG REQUIRED)
+#find_package(smpeg2 CONFIG REQUIRED)
+find_path(STB_INCLUDE_DIRS "stb_c_lexer.h")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMake")
 
@@ -25,16 +53,35 @@ target_compile_features(onscripter_en PUBLIC cxx_std_17)
 
 target_link_libraries(onscripter_en
 PRIVATE
-    bzlib
+    #bzlib
     jpgd
-    lodepng
+    #lodepng
     smpeg
-    SDL2
-    SDL2main
-    SDL2_ttf
+    #SDL2
+    #SDL2main
+    #SDL2_ttf
     soloud
-    stb_image
+    #stb_image
+    #smpeg2::smpeg2
+    
+    glbinding::glbinding
+    #GLEW::GLEW
+    BZip2::BZip2
+    freetype
+    lodepng
+    SDL2::SDL2main SDL2::SDL2-static
+    $<IF:$<TARGET_EXISTS:SDL2_ttf::SDL2_ttf>,SDL2_ttf::SDL2_ttf,SDL2_ttf::SDL2_ttf-static>
 )
+
+target_include_directories(onscripter_en PRIVATE ${STB_INCLUDE_DIRS} ${GLEW_INCLUDE_DIRS})
+
+set_target_properties(onscripter_en
+PROPERTIES
+    MSVC_RUNTIME_LIBRARY
+        "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)
+
+
 
 target_sources(onscripter_en
 PRIVATE

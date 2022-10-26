@@ -45,6 +45,7 @@ extern int convUTF16ToUTF8( unsigned char dst[4], unsigned short src );
 #ifdef WIN32
 //Mion: support for non-ASCII (SJIS) filenames
 #include <wchar.h>
+#include <windows.h>
 #endif
 
 #if defined(MACOSX) || defined(LINUX) || defined(UTF8_FILESYSTEM)

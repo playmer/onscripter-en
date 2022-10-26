@@ -482,11 +482,11 @@ int ONScripter::playMPEG( const char *filename, bool async_flag, bool use_pos, i
                             SDL_FreeSurface(screen_surface);
                             if (fullscreen_mode)
                             {
-                                screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, false );
+                                screen_surface = SetVideoMode( screen_width, screen_height, screen_bpp, false );
                             }
                             else
                             {
-                                screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, true );
+                                screen_surface = SetVideoMode( screen_width, screen_height, screen_bpp, true );
                             }
                             
                             SMPEG_setdisplay(mpeg_sample, &ONScripter::SMpegDisplayCallback, this, mSmpegMutex);

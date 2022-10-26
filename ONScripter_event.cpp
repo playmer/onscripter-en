@@ -1739,7 +1739,7 @@ void ONScripter::runEventLoop()
             screen_ratio2 = script_width;
             screen_width  = ExpandPos(script_width);
             screen_height = ExpandPos(script_height);
-            screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, DEFAULT_VIDEO_SURFACE_FLAG | SDL_RESIZABLE );
+            screen_surface = SetVideoMode( screen_width, screen_height, screen_bpp, DEFAULT_VIDEO_SURFACE_FLAG | SDL_RESIZABLE );
             {
                 SDL_Rect rect = {0, 0, screen_width, screen_height};
                 flushDirect( rect, refreshMode() );

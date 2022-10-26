@@ -1,0 +1,14 @@
+{
+    "name": "onscripter-en",
+    "version-string": "0.1.0-dev",
+    "dependencies": [
+        "bzip2",
+        "glbinding",
+        "freetype",
+        "lodepng",
+        "sdl2",
+        "sdl2-ttf",
+        "smpeg2",
+        "stb"
+    ]
+}

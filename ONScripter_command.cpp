@@ -1897,7 +1897,7 @@ int ONScripter::menu_windowCommand()
     if ( fullscreen_mode ){
 #ifndef PSP
         if (async_movie) SMPEG_pause( async_movie );
-        screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, false );
+        screen_surface = SetVideoMode( screen_width, screen_height, screen_bpp, false );
         SDL_Rect rect = {0, 0, screen_width, screen_height};
         flushDirect( rect, refreshMode() );
         if (async_movie){
@@ -1931,12 +1931,12 @@ int ONScripter::menu_fullCommand()
 {
     if ( !fullscreen_mode ){
       if (async_movie) SMPEG_pause( async_movie );
-      screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, true );
+      screen_surface = SetVideoMode( screen_width, screen_height, screen_bpp, true );
       if (screen_surface)
           fullscreen_mode = true;
       else {
           fprintf(stderr, "*** menu_full: Error: %s (using windowed surface instead) ***\n", SDL_GetError());
-          screen_surface = SDL_SetVideoMode( screen_width, screen_height, screen_bpp, false );
+          screen_surface = SetVideoMode( screen_width, screen_height, screen_bpp, false );
           fullscreen_mode = false;
       }
       SDL_Rect rect = {0, 0, screen_width, screen_height};

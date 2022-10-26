@@ -18,7 +18,13 @@ PRIVATE
 
 target_link_libraries(arcdec
 PRIVATE
-    bzlib
+    BZip2::BZip2
 )
 
 target_compile_definitions(arcdec PUBLIC -DTOOLS_BUILD -DSAR)
+
+set_target_properties(arcdec
+PROPERTIES
+    MSVC_RUNTIME_LIBRARY
+        "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)

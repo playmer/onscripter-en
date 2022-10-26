@@ -58,6 +58,10 @@
 #include <smpeg.h>
 #endif
 
+#include <glbinding/gl/gl.h>
+#include "glbinding/glbinding.h"
+using namespace gl;
+
 #undef min
 
 #define DEFAULT_VIDEO_SURFACE_FLAG (SDL_SWSURFACE)
@@ -95,11 +99,52 @@ inline std::string gDEFAULT_WM_TITLE = "ONScripter-EN";
 
 #define KEYPRESS_NULL ((SDL_Keycode)(SDLK_AUDIOFASTFORWARD+1)) // "null" for keypress variables
 
+
+
+struct GLRenderer
+{
+    struct RenderToTexture
+    {
+        void Create(SDL_Surface* aSurface);
+        void Create(int width, int height);
+        void Destroy();
+        GLuint mColor = 0;
+        GLuint mDepth = 0;
+        GLuint mFramebuffer = 0;
+
+    private:
+        void CreateInternal(int width, int height, SDL_Surface* aSurface);
+    };
+
+    struct Animation
+    {
+        RenderToTexture mTexture;
+    };
+
+    void Initialize(int width, int height);
+
+    void Resize(int width, int height);
+    void DestroyTextures();
+    void UpdateScreen();
+
+
+    SDL_Window* mSecondWindow = nullptr;
+    SDL_GLContext mContext;
+    RenderToTexture accumulation_surface; // Final image, i.e. picture_surface (+ text_window + text_surface)
+    RenderToTexture backup_surface; // Final image w/o (text_window + text_surface) used in leaveTextDisplayMode()
+    RenderToTexture screen_surface; // Text + Select_image + Tachi image + background
+    RenderToTexture effect_dst_surface; // Intermediate source buffer for effect
+    RenderToTexture effect_src_surface; // Intermediate destination buffer for effect
+    RenderToTexture effect_tmp_surface; // Intermediate buffer for effect
+    RenderToTexture screenshot_surface; // Screenshot
+    RenderToTexture image_surface; // Reference for loadImage() - 32bpp
+};
+
+
 class ONScripter : public ScriptParser
 {
 public:
     static bool ToggleFullscreen(SDL_Window* Window);
-    void UpdateScreen(SDL_Rect dst_rect);
     void WarpMouse(int x, int y);
     int HandleGamepadEvent(SDL_Event& event, bool had_automode, bool& ctrl_toggle);
 
@@ -153,7 +198,6 @@ public:
     bool mUpscaledTextures = false;
     int mUpscalingFactor = 0;
     static void SMpegDisplayCallback(void* data, SMPEG_Frame* frame);
-    SDL_Surface* SDL_SetVideoMode(int width, int height, int bpp, bool fullscreen);
 
     typedef AnimationInfo::ONSBuf ONSBuf;
 
@@ -637,6 +681,24 @@ private:
     SDL_Surface *effect_tmp_surface; // Intermediate buffer for effect
     SDL_Surface *screenshot_surface; // Screenshot
     SDL_Surface *image_surface; // Reference for loadImage() - 32bpp
+
+
+    // Set of Functions that abstract rendering so we can render to both windows.
+    void InitializeWindowAndRenderer();
+    void SetWindowIcon(SDL_Surface* icon);
+    void UpdateScreen(SDL_Rect dst_rect);
+    SDL_Surface* SetVideoMode(int width, int height, int bpp, bool fullscreen);
+
+    GLRenderer mGLRenderer;
+
+
+
+
+
+
+
+
+
     protected:
 
     unsigned char *tmp_image_buf;

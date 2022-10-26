@@ -1,12 +1,16 @@
 add_library(soloud STATIC)
 
-#target_compile_definitions(soloud PUBLIC -DWITH_SDL2)
-
-
-
-target_link_libraries(soloud PUBLIC SDL2)
+target_link_libraries(soloud PUBLIC SDL2::SDL2-static)
 
 target_include_directories(soloud PUBLIC repo/include)
+
+
+set_target_properties(soloud
+PROPERTIES
+    MSVC_RUNTIME_LIBRARY
+        "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)
+
 
 target_sources(soloud
 PRIVATE
