@@ -34,12 +34,11 @@ add_subdirectory(bzip2-1.0.4)
 add_subdirectory(freetype)
 
 if (NOT UNIX OR APPLE)
-    add_subdirectory(SDL)
+    add_subdirectory(SDL2)
 else()
     find_package(SDL2 REQUIRED)
 endif()
 
-add_subdirectory(SDL2)
 add_subdirectory(SDL_ttf)
 add_subdirectory(soloud)
 add_subdirectory(smpeg)

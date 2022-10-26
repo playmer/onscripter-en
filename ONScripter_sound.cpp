@@ -142,7 +142,8 @@ int ONScripter::playSound(const char *filename, int format, bool loop_flag, int 
     if (gFirstTime == false)
     {
       gFirstTime = true;
-      mSoundEngine.mSoLoud.init(SoLoud::Soloud::FLAGS::CLIP_ROUNDOFF, mSoundBackEnd);
+      auto result = mSoundEngine.mSoLoud.init(SoLoud::Soloud::FLAGS::CLIP_ROUNDOFF, mSoundBackEnd);
+      
     }
 
     if (PlayOnSoundEngine(mSoundEngine, filename, loop_flag, channel))
